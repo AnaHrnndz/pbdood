@@ -11,4 +11,16 @@ External tools:
 - Famsa  
 - Fastree  
 - ETE4  
+    
+  
+nexflow options:  
+    -resume  
+    -bg > my-file.log  
+    -ansi-log false  
+
+How to run in local:  
+    /data/soft/nextflow -C local.config run cpo.nf   
+    
+How to run in cluster:    
+    sbatch run_cpo_pipeline.sh cpo_nextflow/cpo.nf cpo_nextflow/general.config              
   

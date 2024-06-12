@@ -5,6 +5,8 @@ fasta_file = Channel.fromPath(params.input)
 
 process create_output {
 
+    label 'fast'
+
     publishDir path: { "${params.general_output}" }, mode:'copy'
 
     output:
@@ -38,7 +40,7 @@ process pfam_clustering {
 
     script:
     """
-    python /data/soft/eggnog-mapper_2.1.12/eggnog-mapper/hmm_mapper.py \
+    python ${params.emapper_dir}hmm_mapper.py \
         --cut_ga --clean_overlaps clans --usemem \
         --num_servers ${params.hmmer_num_servers} --num_workers ${params.hmmer_num_workers} --cpu ${params.hmmer_cpu} \
         --dbtype hmmdb  -d /data/soft/eggnog-mapper_2.1.9/data/pfam/Pfam-A.hmm \
@@ -49,6 +51,8 @@ process pfam_clustering {
 }
 
 process get_pfam_fastas {
+
+    label 'medium'
 
     publishDir path: "${params.fastas_output}" , mode: 'copy'
 
@@ -105,6 +109,8 @@ process get_pfam_fastas {
 
 process mmseqs_clustering {
 
+    label 'long'
+
     publishDir path: "${params.clustering_output}" , mode: 'copy'
 
     input:
@@ -141,6 +147,8 @@ process mmseqs_clustering {
 
 
 process get_mmseqs_fastas {
+
+    label 'medium'
 
     publishDir path: "${params.fastas_output}" , mode: 'copy'
 
@@ -192,6 +200,8 @@ process get_mmseqs_fastas {
 
 process align_pfam {
 
+    label 'fast'
+
     tag { fasta_file }
 
     publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
@@ -207,12 +217,14 @@ process align_pfam {
     script:
     fasta_name = fasta_file.baseName
     """
-    famsa -t ${params.famsa_threads} "${fasta_file}" "${fasta_name}".aln 2> align.err  
+    famsa -t ${params.famsa_threads} ${fasta_file} ${fasta_name}.aln 2> align.err  
     """
 
 }
 
 process align_mmseqs {
+
+    label 'fast'
 
     tag { fasta_file }
 
@@ -236,6 +248,8 @@ process align_mmseqs {
 
 process trimming_pfam {
 
+    label 'fast'
+
     publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
 
     input:
@@ -254,6 +268,8 @@ process trimming_pfam {
 }
 
 process trimming_mmseqs{
+
+    label 'fast'
 
     publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
 
@@ -274,6 +290,8 @@ process trimming_mmseqs{
 
 process tree_pfam {
 
+    label 'fast'
+
     publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
 
     input:
@@ -293,6 +311,8 @@ process tree_pfam {
 
 process tree_mmseqs {
 
+    label 'fast'
+
     publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
 
     input:
@@ -311,6 +331,8 @@ process tree_mmseqs {
 
 process ogd_pfam {
 
+    label 'fast'
+
     publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
 
     input:
@@ -325,7 +347,7 @@ process ogd_pfam {
     fasta_name = pfam_nw.baseName
     """
     mkdir  ${params.orthology_output}/${fasta_name}
-    python /data/projects/og_delineation/og_delineation.py --tree ${pfam_nw} --output_path ./ \
+    python ${params.ogd_dir}og_delineation.py --tree ${pfam_nw} --output_path ./ \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator .
     """
 
@@ -334,6 +356,8 @@ process ogd_pfam {
 
 
 process ogd_mmseqs {
+
+    label 'fast'
 
     publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
 
@@ -349,7 +373,7 @@ process ogd_mmseqs {
     fasta_name = mmseqs_nw.baseName
     """
     mkdir  ${params.orthology_output}/${fasta_name}
-    python /data/projects/og_delineation/og_delineation.py --tree ${mmseqs_nw} --output_path ./ \
+    python ${params.ogd_dir}og_delineation.py --tree ${mmseqs_nw} --output_path ./ \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator ${params.ogd_sp_delimitator}
     """
 
