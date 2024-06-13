@@ -40,10 +40,10 @@ process pfam_clustering {
 
     script:
     """
-    python ${params.emapper_dir}hmm_mapper.py \
+    python ${params.emapper_dir}/hmm_mapper.py \
         --cut_ga --clean_overlaps clans --usemem \
         --num_servers ${params.hmmer_num_servers} --num_workers ${params.hmmer_num_workers} --cpu ${params.hmmer_cpu} \
-        --dbtype hmmdb  -d /data/soft/eggnog-mapper_2.1.9/data/pfam/Pfam-A.hmm \
+        --dbtype hmmdb  -d ${params.emapper_dir}/data/pfam/Pfam-A.hmm \
         --hmm_maxhits 0 --hmm_maxseqlen 60000 \
         --qtype seq -i ${fasta_file} -o result_hmm_mapper  
     """
