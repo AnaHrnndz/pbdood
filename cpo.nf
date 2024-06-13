@@ -109,7 +109,7 @@ process get_pfam_fastas {
 
 process mmseqs_clustering {
 
-    label 'long'
+    label 'medium'
 
     publishDir path: "${params.clustering_output}" , mode: 'copy'
 
