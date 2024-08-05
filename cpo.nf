@@ -200,7 +200,14 @@ process get_mmseqs_fastas {
 
 process align_pfam {
 
-    label 'fast'
+    label 'medium'
+
+    memory { 4.GB * task.attempt }
+    time { 1.d * task.attempt }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 3
+
 
     tag { fasta_file }
 
@@ -224,9 +231,13 @@ process align_pfam {
 
 process align_mmseqs {
 
-    label 'fast'
+    label 'medium'
 
-    tag { fasta_file }
+    memory { 4.GB * task.attempt }
+    time { 1.d * task.attempt }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
 
