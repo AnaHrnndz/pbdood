@@ -30,6 +30,8 @@ process create_output {
 
 process pfam_clustering {
 
+    tag { fasta_file }
+
     publishDir path:  "${params.clustering_output}" , mode:'copy'
 
     input:
@@ -53,6 +55,14 @@ process pfam_clustering {
 process get_pfam_fastas {
 
     label 'medium'
+
+    tag { pfam_table }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 2
 
     publishDir path: "${params.fastas_output}" , mode: 'copy'
 
@@ -111,6 +121,14 @@ process mmseqs_clustering {
 
     label 'medium'
 
+    tag { seqs_no_pfam }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 2
+
     publishDir path: "${params.clustering_output}" , mode: 'copy'
 
     input:
@@ -135,7 +153,8 @@ process mmseqs_clustering {
         mmseqs createdb ${seqs_no_pfam} ${mmseqs_db}
         
         mmseqs cluster ${mmseqs_db} ${mmseqs_clustering} mmseqs_tmp --threads ${params.mmseqs_threads} \
-        -c ${params.mmseqs_coverage} --min-seq-id ${params.mmseqs_min_seq_id} -s ${params.sensitivity} --cov-mode ${params.cov_mode} --cluster-mode ${params.cluster_mode}
+        -c ${params.mmseqs_coverage} --min-seq-id ${params.mmseqs_min_seq_id} -s ${params.sensitivity} \
+        --cov-mode ${params.cov_mode} --cluster-mode ${params.cluster_mode}
        
         mmseqs createtsv ${mmseqs_db} ${mmseqs_db} ${mmseqs_clustering} ${mmseqs_tsv}
        
@@ -149,6 +168,15 @@ process mmseqs_clustering {
 process get_mmseqs_fastas {
 
     label 'medium'
+
+    tag { mmseqs_mems }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 2
+
 
     publishDir path: "${params.fastas_output}" , mode: 'copy'
 
@@ -202,29 +230,34 @@ process align_pfam {
 
     label 'medium'
 
-    memory { 4.GB * task.attempt }
-    time { 1.d * task.attempt }
+    tag { raw_pfam_fasta }
 
-    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
     maxRetries 3
-
-
-    tag { fasta_file }
 
     publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
 
     input:
-    path fasta_file 
-
+    path raw_pfam_fasta 
 
     output:
     path "*.pfam.aln", emit: pfam_aln
-    
-    
+        
     script:
-    fasta_name = fasta_file.baseName
+    fasta_name = raw_pfam_fasta.baseName
     """
-    famsa -t ${params.famsa_threads} ${fasta_file} ${fasta_name}.aln 2> align.err  
+    famsa -t ${params.famsa_threads} ${raw_pfam_fasta} ${fasta_name}.aln 2> align.err  
     """
 
 }
@@ -233,25 +266,35 @@ process align_mmseqs {
 
     label 'medium'
 
-    memory { 4.GB * task.attempt }
-    time { 1.d * task.attempt }
+    tag { raw_mmseqs_fasta }
 
-    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
     maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
 
     input:
-    path fasta_file
+    path raw_mmseqs_fasta
 
     output:
     path "*.mmseqs.aln", emit: mmseqs_aln
     
     
     script:
-    fasta_name = fasta_file.baseName
+    fasta_name = raw_mmseqs_fasta.baseName
     """
-    famsa -t ${params.famsa_threads} ${fasta_file} ${fasta_name}.aln 2> align.err
+    famsa -t ${params.famsa_threads} ${raw_mmseqs_fasta} ${fasta_name}.aln 2> align.err
     """
 
 }
@@ -260,6 +303,22 @@ process align_mmseqs {
 process trimming_pfam {
 
     label 'fast'
+
+    tag { pfam_aln }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
 
@@ -271,9 +330,8 @@ process trimming_pfam {
 
     script:
     fasta_name = pfam_aln.baseName
-
     """
-    trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    ${params.python_version} ${params.bin_dir}trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
@@ -281,6 +339,22 @@ process trimming_pfam {
 process trimming_mmseqs{
 
     label 'fast'
+    
+    tag { mmseqs_aln }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
 
@@ -292,16 +366,31 @@ process trimming_mmseqs{
 
     script:
     fasta_name = mmseqs_aln.baseName
-
     """
-    trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    ${params.python_version} ${params.bin_dir}trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
 
 process tree_pfam {
 
-    label 'fast'
+    label 'medium'
+
+    tag { pfam_trim }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
 
@@ -322,7 +411,23 @@ process tree_pfam {
 
 process tree_mmseqs {
 
-    label 'fast'
+    label 'medium'
+
+    tag { mmseqs_trim }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
 
     publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
 
@@ -342,7 +447,24 @@ process tree_mmseqs {
 
 process ogd_pfam {
 
-    label 'fast'
+    label 'medium'
+
+    tag { pfam_nw }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
+
 
     publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
 
@@ -358,8 +480,8 @@ process ogd_pfam {
     fasta_name = pfam_nw.baseName
     """
     mkdir  ${params.orthology_output}/${fasta_name}
-    python ${params.ogd_dir}og_delineation.py --tree ${pfam_nw} --output_path ./ \
-        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator .
+    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${pfam_nw} --output_path ./  --get_pairs \
+        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}
     """
 
 
@@ -368,7 +490,23 @@ process ogd_pfam {
 
 process ogd_mmseqs {
 
-    label 'fast'
+    label 'medium'
+
+    tag { mmseqs_nw }
+
+    memory { params.memory * task.attempt }
+    time { params.time * task.attempt }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
 
     publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
 
@@ -384,10 +522,9 @@ process ogd_mmseqs {
     fasta_name = mmseqs_nw.baseName
     """
     mkdir  ${params.orthology_output}/${fasta_name}
-    python ${params.ogd_dir}og_delineation.py --tree ${mmseqs_nw} --output_path ./ \
-        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator ${params.ogd_sp_delimitator}
+    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${mmseqs_nw} --output_path ./  --get_pairs \
+        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}
     """
-
 
 }
 
@@ -421,7 +558,5 @@ workflow {
 
     ogd_mmseqs(tree_mmseqs.out.mmseqs_nw)    
     
-   
 
-    
 }

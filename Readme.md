@@ -17,6 +17,9 @@ nexflow options:
     -resume  
     -bg > my-file.log  
     -ansi-log false  
+    -with-trace 
+    -with-timeline qfo_timeline 
+    -with-dag flowchart.png
 
 How to run in local:  
     /data/soft/nextflow -C local.config run cpo.nf   
