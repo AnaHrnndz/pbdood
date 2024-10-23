@@ -4,13 +4,16 @@
 Nextflow pipeline for Clustering, Phylogenomics and Orthology prediction  
   
 External tools:  
-- eggnog-mapper  
-- HMMER v 3.1b2  
-- BioPython  
-- MMseqs  
-- Famsa  
-- Fastree  
-- ETE4  
+    clustering module:  
+        - eggnog-mapper    
+        - HMMER v 3.1b2    
+        - BioPython  
+        - MMseqs  
+    Phylogenomics module:    
+        - Famsa  
+        - Fastree  
+    Orthology module:    
+        - ETE4  
     
   
 nexflow options:  
@@ -22,7 +25,11 @@ nexflow options:
     -with-dag flowchart.png
 
 How to run in local:  
-    /data/soft/nextflow -C local.config run cpo.nf   
+    bash /data/soft/nextflow run cpo_subwf.nf -c local.config
+
+How to run specific module in local:  
+    bash /data/soft/nextflow run subworkflows/phylogenomics.nf -c local.config -resume -entry MODULE_PHYLOGENOMICS  
+    bash /data/soft/nextflow run subworkflows/orthology.nf -c local.config -resume -entry MODULE_ORTHOLOGY
     
 How to run in cluster:    
     sbatch run_cpo_pipeline.sh cpo_nextflow/cpo.nf cpo_nextflow/general.config              

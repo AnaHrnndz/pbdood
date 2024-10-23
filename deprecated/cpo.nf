@@ -72,6 +72,7 @@ process get_pfam_fastas {
     output:
     path "*.pfam.faa", emit: pfam_fastas
     path "seqs_no_pfam.faa", emit: seqs_no_pfam
+    path "pairs_small_pfamsfams.tsv", emit: pairs_small_pfams
     
     script:
     $/
@@ -92,11 +93,23 @@ process get_pfam_fastas {
                 #seqs2pfam[info[0]].add(info[1])
     
     seqs2pfam = defaultdict(set)
+    small_pfam_fams = list()
     for pfam, seqs in pfam2seqs.items():
         if len(seqs) >= 3:
             for s in seqs:
                 seqs2pfam[s].add(pfam)
 
+
+        if len(seqs) == 2:
+            tax1 = list(seqs)[0].split('.')
+            tax2 = list(seqs)[1].split('.')
+            if tax1 != tax2:
+                small_pfam_fams.append([list(seqs)])
+
+    if len(small_pfam_fams) >0:
+        with(open('pairs_small_pfamsfams.tsv', 'w')) as fout():
+            for el in small_pfam_fams:
+                fout.write('\t'.join(el)+'\n')
 
     seqs_no_pfam_path = "seqs_no_pfam.faa"
     seqs_no_pfam = open(seqs_no_pfam_path, 'w')
@@ -187,6 +200,7 @@ process get_mmseqs_fastas {
     output:
     path "*.mmseqs.faa" , emit: mmseqs_fastas
     path "singletons.faa", emit: singletons
+    path "pairs_small_mmseqs.tsv", emit: pairs_small_mmseqs
 
     script:
     $/
@@ -198,6 +212,7 @@ process get_mmseqs_fastas {
     mmseqs_clus2seqs = defaultdict(list)
     seqs2mmseqs = defaultdict()    
     sigletons_fasta = open("singletons.faa", "w")
+    pairs_small_mmseqs = list()
 
     with open("${mmseqs_mems}") as fin:
         for line in fin:
@@ -208,7 +223,17 @@ process get_mmseqs_fastas {
                     for s in info[1].split(','):
                         seqs2mmseqs[s] = info[0]
 
-   
+                if len(info[1].split(',')) == 2:
+                    seqs_list = info[1].split(',')
+                    tax1 = seqs_list[0].split('.')[1]
+                    tax2 = seqs_list[1].split('.')[1]
+                    if tax1 != tax2:
+                        pairs_small_mmseqs.append(seqs_list)
+
+    if len(pairs_small_mmseqs)>0:
+        with(open('pairs_small_mmseqs.tsv', 'w')) as fout:
+            for el in pairs_small_mmseqs:
+                fout.write('\t'.join(el)+'\n')
 
     for record in SeqIO.parse("${seqs_no_pfam}", "fasta"):
         if record.id in seqs2mmseqs.keys():
@@ -404,7 +429,12 @@ process tree_pfam {
     script:
     fasta_name = pfam_trim.baseName
     """
-    FastTree ${pfam_trim} > ${fasta_name}.nw  2> build.err
+    if [ ${task.attempt} -gt 1 ]
+    then    
+        FastTree -fastest  ${pfam_trim}  > ${fasta_name}.nw  
+    else 
+        FastTree ${pfam_trim} > ${fasta_name}.nw 
+    fi
     """
 }
 
@@ -475,12 +505,13 @@ process ogd_pfam {
     path "*.tree_annot.nw", emit: ogd_pfam_tree
     path "*.ogs_info.tsv", emit: ogd_pfam_info
     path "*.seq2ogs.tsv", emit: ogd_pfam_seq2og 
+    path "*.pairs.tsv", emit: ogd_pfam_pairs 
 
     script:
     fasta_name = pfam_nw.baseName
     """
-    mkdir  ${params.orthology_output}/${fasta_name}
-    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${pfam_nw} --output_path ./  --get_pairs \
+    mkdir -p ${params.orthology_output}/${fasta_name}
+    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${pfam_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}
     """
 
@@ -517,13 +548,15 @@ process ogd_mmseqs {
     path "*.tree_annot.nw", emit: ogd_mmseqs_tree 
     path "*.ogs_info.tsv", emit: ogd_mmseqs_info
     path "*.seq2ogs.tsv", emit: ogd_mmseqs_seq2og
+    path "*.pairs.tsv", emit: ogd_mmseqs_pairs 
+
 
     script:
     fasta_name = mmseqs_nw.baseName
     """
-    mkdir  ${params.orthology_output}/${fasta_name}
-    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${mmseqs_nw} --output_path ./  --get_pairs \
-        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}
+    mkdir  -p ${params.orthology_output}/${fasta_name}
+    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${mmseqs_nw} --output_path ./   \
+        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}     
     """
 
 }
