@@ -32,16 +32,16 @@ process ogd {
     path "*.tree_annot.nw", emit: ogd_tree
     path "*.ogs_info.tsv", emit: ogd_info
     path "*.seq2ogs.tsv", emit: ogd_seq2og 
-    path "*.pairs.tsv", emit: ogd_pairs 
+    // path "*.pairs.tsv", emit: ogd_pairs 
 
     script:
     fasta_name = general_nw.baseName
     """
     mkdir -p ${params.orthology_output}/${fasta_name}
     ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${general_nw} --output_path ./  \
-        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator}
+        --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
+        --sp_ovlap_all 0.1 --species_losses_perct 0.7 --skip_get_pairs 
     """
-
 
 }
 
