@@ -21,6 +21,7 @@ seqs2pfam = defaultdict(set)
 pfam_small_fams = defaultdict(list)
 pfam_singletons = defaultdict()
 pfam_fastas = defaultdict(list)
+
 for pfam, seqs in pfam_fams2seqs.items():
 
     if len(seqs) == 1:
@@ -45,6 +46,23 @@ if len(pfam_singletons) >0:
     with(open('pfam_singletons.tsv', 'w')) as fout:
         for pfam, seqs in pfam_singletons.items():
             fout.write('\t'.join([pfam, ','.join(seqs)+'\n']))
+
+pfam_clust_mems = open('pfam.clusters_mems.tsv', 'w')
+pfam_clust_size = open('pfam.clusters_size.tsv', 'w')
+seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
+for pnam, mems in pfam_fams2seqs.items():
+    pfam_clust_mems.write('\t'.join([pnam, ','.join(mems)+'\n']))
+    pfam_clust_size.write('\t'.join([pnam, str(len(mems))+'\n']))
+
+    for m in mems:
+        seq2pfam_out.write('\t'.join([m, pnam+'\n']))
+
+    
+pfam_clust_mems.close()
+pfam_clust_size.close()
+
+
+
 
 seqs_no_pfam_path = "seqs_no_pfam.faa"
 seqs_no_pfam = open(seqs_no_pfam_path, 'w')

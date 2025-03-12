@@ -10,10 +10,13 @@ External tools:
         - BioPython  
         - MMseqs  
     Phylogenomics module:    
-        - Famsa  
+        - Famsa 
+        - Mafft 
         - Fastree  
     Orthology module:    
         - ETE4  
+        - FastRoot (MinVar rooting)
+        - Treeprofiler
     
   
 nexflow options:  
@@ -25,7 +28,10 @@ nexflow options:
     -with-dag flowchart.png
 
 How to run in local:  
-    bash /data/soft/nextflow run cpo_subwf.nf -c local.config
+    - Nextflow subworkflows mode
+    bash /data/soft/nextflow run cpo_subwf.nf -c local.config -with-trace
+    - Nexrflow one workflow mode
+    bash /data/soft/nextflow run cpo_v2.nf -c qfo_nextflow.config -with-trace -resume
 
 How to run specific module in local:  
     bash /data/soft/nextflow run subworkflows/phylogenomics.nf -c local.config -resume -entry MODULE_PHYLOGENOMICS  

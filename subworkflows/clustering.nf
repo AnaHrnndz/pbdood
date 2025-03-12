@@ -40,6 +40,11 @@ process get_pfam_fastas {
     publishDir path: "${params.fastas_output}" , pattern: "*.pfam.faa", mode: 'copy'
     publishDir path: "${params.clustering_output}", pattern: "pfam_singletons.tsv", mode: 'copy'
     publishDir path: "${params.clustering_output}", pattern: "pfam_small_fams.tsv", mode: 'copy'
+    publishDir path: "${params.clustering_output}", pattern: "pfam_seq2pfam.tsv", mode: 'copy'
+    publishDir path: "${params.clustering_output}", pattern: "pfam.clusters_size.tsv", mode: 'copy'
+    publishDir path: "${params.clustering_output}", pattern: "pfam.clusters_mems.tsv", mode: 'copy'
+
+
 
     input:
     path pfam_table
@@ -49,6 +54,9 @@ process get_pfam_fastas {
     path "*.pfam.faa", emit: pfam_fastas
     path "seqs_no_pfam.faa", emit: seqs_no_pfam
     path "pfam_small_fams.tsv", emit: pairs_small_pfams
+    path "pfam.clusters_mems.tsv"
+    path "pfam.clusters_size.tsv"
+    path "pfam_seq2pfam.tsv"
     path "pfam_singletons.tsv"
     
     script:

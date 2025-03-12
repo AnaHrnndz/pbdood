@@ -12,7 +12,7 @@ def generate_mmseqs_code():
     unique_part = ''.join(random.choices(chars, k=6))
     
     # Combine with the prefix
-    mmseqs_code = f"mmseqs_{unique_part}"
+    mmseqs_code = f"{unique_part}.mmseqs"
     
     return mmseqs_code
 
