@@ -28,15 +28,18 @@ nexflow options:
     -with-dag flowchart.png
 
 How to run in local:  
-    - Nextflow subworkflows mode
-    bash /data/soft/nextflow run cpo_subwf.nf -c local.config -with-trace
+    
     - Nexrflow one workflow mode
-    bash /data/soft/nextflow run cpo_v2.nf -c qfo_nextflow.config -with-trace -resume
+    bash /data/soft/nextflow run DOOD.nf -c local.config -with-trace -resume
+    
+    - If you want to repeat just the ogd process, create a new config with the new parametes and the new output folders
+    bash /data/soft/nextflow run /data/projects/cpo_pipeline/DOOD.nf -c local.config -with-trace -resume until ogd_pfam,ogd_mmseqs
+
 
 How to run specific module in local:  
     bash /data/soft/nextflow run subworkflows/phylogenomics.nf -c local.config -resume -entry MODULE_PHYLOGENOMICS  
     bash /data/soft/nextflow run subworkflows/orthology.nf -c local.config -resume -entry MODULE_ORTHOLOGY
     
 How to run in cluster:    
-    sbatch run_cpo_pipeline.sh cpo_nextflow/cpo.nf cpo_nextflow/general.config              
+    sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf cpo_nextflow/general.config              
   

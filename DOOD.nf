@@ -209,7 +209,17 @@ process align_pfam {
     script:
     fasta_name = raw_pfam_fasta.baseName
     """
-    famsa -t ${params.famsa_threads} ${raw_pfam_fasta} ${fasta_name}.aln 2> align.err  
+    #famsa -t ${params.famsa_threads} ${raw_pfam_fasta} ${fasta_name}.aln 2> align.err  
+
+    num_seqs=\$(grep -c '^>' ${raw_pfam_fasta})
+    if [ "\$num_seqs" -gt 1000 ]; then
+        echo famsa
+        famsa -t ${params.famsa_threads} ${raw_pfam_fasta} ${fasta_name}.aln 2> align.err  
+    else
+        echo mafft
+        mafft --auto --anysymbol  ${raw_pfam_fasta} > ${fasta_name}.aln
+    fi
+
     """
 
 }
@@ -246,7 +256,16 @@ process align_mmseqs {
     script:
     fasta_name = raw_mmseqs_fasta.baseName
     """
-    famsa -t ${params.famsa_threads} ${raw_mmseqs_fasta} ${fasta_name}.aln 2> align.err
+    #famsa -t ${params.famsa_threads} ${raw_mmseqs_fasta} ${fasta_name}.aln 2> align.err
+
+    num_seqs=\$(grep -c '^>' ${raw_mmseqs_fasta})
+    if [ "\$num_seqs" -gt 1000 ]; then
+        echo famsa
+        famsa -t ${params.famsa_threads} ${raw_mmseqs_fasta} ${fasta_name}.aln 2> align.err  
+    else
+        echo mafft
+        mafft --auto --anysymbol  ${raw_mmseqs_fasta} > ${fasta_name}.aln
+    fi
     """
 
 }

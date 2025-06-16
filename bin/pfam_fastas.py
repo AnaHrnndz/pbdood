@@ -49,13 +49,13 @@ if len(pfam_singletons) >0:
 
 pfam_clust_mems = open('pfam.clusters_mems.tsv', 'w')
 pfam_clust_size = open('pfam.clusters_size.tsv', 'w')
-seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
+#seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
 for pnam, mems in pfam_fams2seqs.items():
     pfam_clust_mems.write('\t'.join([pnam, ','.join(mems)+'\n']))
     pfam_clust_size.write('\t'.join([pnam, str(len(mems))+'\n']))
 
-    for m in mems:
-        seq2pfam_out.write('\t'.join([m, pnam+'\n']))
+    # for m in mems:
+        # seq2pfam_out.write('\t'.join([m, pnam+'\n']))
 
     
 pfam_clust_mems.close()
@@ -66,12 +66,13 @@ pfam_clust_size.close()
 
 seqs_no_pfam_path = "seqs_no_pfam.faa"
 seqs_no_pfam = open(seqs_no_pfam_path, 'w')
-    
+seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
 for record in SeqIO.parse(fasta_file, "fasta"):
     if record.id in seqs2pfam.keys():
         all_pfams = seqs2pfam[record.id]
-        for dom in all_pfams:
-            
+        seq2pfam_out.write('\t'.join([record.id, ','.join(list(all_pfams))+'\n']))
+
+        for dom in all_pfams:    
             if dom in pfam_fastas.keys():
                 
                 path2pfam_fasta =  dom+".pfam.faa"
