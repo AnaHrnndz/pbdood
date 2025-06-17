@@ -1,45 +1,97 @@
-#AHP 2024
 
+# DOOD: Domain Oriented Orthology Delineation
 
-Nextflow pipeline for Clustering, Phylogenomics and Orthology prediction  
-  
-External tools:  
-    clustering module:  
-        - eggnog-mapper    
-        - HMMER v 3.1b2    
-        - BioPython  
-        - MMseqs  
-    Phylogenomics module:    
-        - Famsa 
-        - Mafft 
-        - Fastree  
-    Orthology module:    
-        - ETE4  
-        - FastRoot (MinVar rooting)
-        - Treeprofiler
-    
-  
-nexflow options:  
-    -resume  
-    -bg > my-file.log  
-    -ansi-log false  
-    -with-trace 
-    -with-timeline qfo_timeline 
-    -with-dag flowchart.png
+---
 
-How to run in local:  
-    
-    - Nexrflow one workflow mode
-    bash /data/soft/nextflow run DOOD.nf -c local.config -with-trace -resume
-    
-    - If you want to repeat just the ogd process, create a new config with the new parametes and the new output folders
-    bash /data/soft/nextflow run /data/projects/cpo_pipeline/DOOD.nf -c local.config -with-trace -resume until ogd_pfam,ogd_mmseqs
+## Overview
 
+**DOOD (Domain Oriented Orthology Delineation)** 
+DOOD (Domain Oriented Orthology Delineation) is a bioinformatics tool that identifies orthologous groups across different proteomes. It first clusters proteins based on Pfam domains, then builds phylogenetic trees, and finally uses the OGD Python script to analyze these trees, pinpointing duplication events and defining the orthologous groups.
+## Key Features
 
-How to run specific module in local:  
-    bash /data/soft/nextflow run subworkflows/phylogenomics.nf -c local.config -resume -entry MODULE_PHYLOGENOMICS  
-    bash /data/soft/nextflow run subworkflows/orthology.nf -c local.config -resume -entry MODULE_ORTHOLOGY
-    
-How to run in cluster:    
-    sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf cpo_nextflow/general.config              
-  
+* **Domain-Based Clustering:** Initial protein clustering based on Pfam domains, grouping proteins into Pfam families (PfamFams).
+* **Handling Multi-Domain:** Multi-domain sequences will be part of every PfamFam they map to
+* ** Unknown Sequences:** Sequences lacking Pfam domains are clustered using MMseqs to form UnkFams.
+* **Automated Gene Tree Building:** For families with at least three sequences, DOOD automatically generates multiple sequence alignments (MSAs), with an in-house script removes uninformative columns from MSAs and finllany infers a gene trees.
+* **Orthology Delineation (OGD):** Employs the OGD algorithm to analyze each gene trees, detect duplication events, and define orthologous groups (OGs) at various taxonomic levels.
+
+---
+
+## Requirements
+
+DOOD uses several external bioinformatics tools and libraries. Make sure these are accessible in your environment.
+
+### Workflow Manager
+
+* `Nextflow`
+
+### Clustering Module Dependencies
+
+* `eggnog-mapper`
+* `HMMER v 3.1b2`
+* `BioPython`
+* `MMseqs`
+
+### Phylogenomics Module Dependencies
+
+* `Famsa`
+* `Mafft`
+* `Fasttree`
+
+### Orthology Module Dependencies
+
+* `ETE4`
+* `FastRoot` 
+* `Treeprofiler`
+
+---
+
+## Input
+
+DOOD requires the following input files:
+
+* **Proteome FASTA file:** A single FASTA file containing all proteome sequences.
+    * **Sequence Naming Convention:** Sequence headers must follow the format `ncbi_taxid.sequence_name`. The `.` can be replaced by other characters like `@` or `|`.
+    * **Example:** `9606.NP_000001.1`
+
+### Optional Input Files
+
+* **Pfam database:** If you wish to use a specific version of the Pfam database, provide its path.
+* **Species tree:** Provide a custom species tree if required for your analysis.
+* **NCBI taxonomy database:** Provide a specific version of the NCBI taxonomy database if needed.
+
+---
+
+## How to Run DOOD
+
+DOOD can be executed locally or on an HPC cluster using Nextflow.
+
+### Local Execution
+
+To run DOOD on your local machine:
+
+* **Run the entire pipeline:**
+    ```bash
+    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume
+    ```
+    * Replace `/path/to/nextflow` with the actual path to your Nextflow executable.
+
+* **Repeat specific OGD processes:**
+    If you need to re-run only the OGD (Orthologs Group Delineation) part, create a new configuration file (`new_local.config`) with your desired parameters and new output directories, then execute:
+    ```bash
+    bash /path/to/nextflow run /data/projects/cpo_pipeline/DOOD.nf -c new_local.config -with-trace -resume until ogd_pfam,ogd_mmseqs
+    ```
+
+* **Run specific modules:**
+    For targeted execution of individual modules:
+    ```bash
+    bash /path/to/nextflow run subworkflows/phylogenomics.nf -c local.config -resume -entry MODULE_PHYLOGENOMICS
+    bash /path/to/nextflow run subworkflows/orthology.nf -c local.config -resume -entry MODULE_ORTHOLOGY
+    ```
+
+### HPC Execution
+
+To submit DOOD to an HPC cluster using Slurm (or a similar job scheduler):
+
+```bash
+sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf cpo_nextflow/general.config
