@@ -15,6 +15,10 @@ DOOD (Domain Oriented Orthology Delineation) is a bioinformatics tool that ident
 * **Automated Gene Tree Building:** For families with at least three sequences, DOOD automatically generates multiple sequence alignments (MSAs), with an in-house script removes uninformative columns from MSAs and finllany infers a gene trees.
 * **Orthology Delineation (OGD):** Employs the OGD algorithm to analyze each gene trees, detect duplication events, and define orthologous groups (OGs) at various taxonomic levels.
 
+
+
+![Alt text for the image](images/graphical_summary.jpg "Summary")
+
 ---
 
 ## Requirements
