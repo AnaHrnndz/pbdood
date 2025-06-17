@@ -11,7 +11,7 @@ DOOD (Domain Oriented Orthology Delineation) is a bioinformatics tool that ident
 
 * **Domain-Based Clustering:** Initial protein clustering based on Pfam domains, grouping proteins into Pfam families (PfamFams).
 * **Handling Multi-Domain:** Multi-domain sequences will be part of every PfamFam they map to
-* ** Unknown Sequences:** Sequences lacking Pfam domains are clustered using MMseqs to form UnkFams.
+* **Unknown Sequences:** Sequences lacking Pfam domains are clustered using MMseqs to form UnkFams.
 * **Automated Gene Tree Building:** For families with at least three sequences, DOOD automatically generates multiple sequence alignments (MSAs), with an in-house script removes uninformative columns from MSAs and finllany infers a gene trees.
 * **Orthology Delineation (OGD):** Employs the OGD algorithm to analyze each gene trees, detect duplication events, and define orthologous groups (OGs) at various taxonomic levels.
 
