@@ -5,7 +5,7 @@
 
 ## Overview
 
-![Alt text for the image](images/_logo.png "logo") **DOOD (Domain Oriented Orthology Delineation)** is a bioinformatics tool that identifies orthologous groups across different proteomes. It first clusters proteins based on Pfam domains, then builds phylogenetic trees, and finally uses the OGD Python script to analyze these trees, pinpointing duplication events and defining the orthologous groups.
+**DOOD (Domain Oriented Orthology Delineation)** is a bioinformatics tool that identifies orthologous groups across different proteomes. It first clusters proteins based on Pfam domains, then builds phylogenetic trees, and finally uses the OGD Python script to analyze these trees, pinpointing duplication events and defining the orthologous groups.
 ## Key Features
 
 * **Domain-Based Clustering:** Initial protein clustering based on Pfam domains, grouping proteins into Pfam families (PfamFams).
@@ -63,6 +63,25 @@ DOOD requires the following input files:
 * **Species tree:** Provide a custom species tree if required for your analysis.
 * **NCBI taxonomy database:** Provide a specific version of the NCBI taxonomy database if needed.
 
+---
+
+## Output
+
+DOOD create 3 main output folder:
+
+* **Clustering:** Here you can find all the output for the clustering steps.
+    * fasta: This folder contain all the raw fasta created for each family
+    * result_hmm_mapper.emapper.hmm_hits: is the main output file from the pfam clustering
+    
+
+* **Phylogenomics:**  
+    * aln: folder with all the alignments
+    * trim_aln: folder with the trimmed aligments
+    * trees: folder with all the trees
+
+* **Orthology:** This folder contains a subfolder per family. The main outputs from OGD are:
+    * *.tree_annot.nw
+    * *.ogs_info.tsv
 ---
 
 ## How to Run DOOD
