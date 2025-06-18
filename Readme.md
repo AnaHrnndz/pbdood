@@ -5,7 +5,7 @@
 
 ## Overview
 
-**DOOD (Domain Oriented Orthology Delineation)** is a bioinformatics tool that identifies orthologous groups across different proteomes. It first clusters proteins based on Pfam domains, then builds phylogenetic trees, and finally uses the OGD Python script to analyze these trees, pinpointing duplication events and defining the orthologous groups.
+![Alt text for the image](images/_logo.png "logo") **DOOD (Domain Oriented Orthology Delineation)** is a bioinformatics tool that identifies orthologous groups across different proteomes. It first clusters proteins based on Pfam domains, then builds phylogenetic trees, and finally uses the OGD Python script to analyze these trees, pinpointing duplication events and defining the orthologous groups.
 ## Key Features
 
 * **Domain-Based Clustering:** Initial protein clustering based on Pfam domains, grouping proteins into Pfam families (PfamFams).
