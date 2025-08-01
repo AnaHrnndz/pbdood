@@ -1,6 +1,10 @@
 #!/usr/bin/env nextflow
 
 
+    
+bin_path = "${baseDir}/bin/"
+    
+
 
 process create_output {
 
@@ -32,20 +36,20 @@ process pfam_clustering {
 
     tag { fasta_file }
 
-    publishDir path:  "${params.clustering_output}" , mode:'copy'
+    publishDir path:  "${params.general_output}/clustering/" , mode:'copy'
 
     input:
     path fasta_file
+    
 
     output:
     path "result_hmm_mapper.emapper.hmm_hits", emit: pfam_table
 
     script:
     """
-    python ${params.emapper_dir}/hmm_mapper.py \
-        --cut_ga --clean_overlaps clans --usemem \
+    hmm_mapper.py  --cut_ga --clean_overlaps clans --usemem \
         --num_servers ${params.hmmer_num_servers} --num_workers ${params.hmmer_num_workers} --cpu ${params.hmmer_cpu} \
-        --dbtype hmmdb  -d ${params.emapper_dir}/data/pfam/Pfam-A.hmm \
+        --dbtype hmmdb  --data_dir ${params.pfam_datadir} -d ${params.pfam_db} \
         --hmm_maxhits 0 --hmm_maxseqlen 60000 \
         --qtype seq -i ${fasta_file} -o result_hmm_mapper  
     """
@@ -59,17 +63,19 @@ process get_pfam_fastas {
     tag { pfam_table }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
 
-    publishDir path: "${params.fastas_output}" , pattern: "*.pfam.faa", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "pfam_singletons.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "pfam_small_fams.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "pfam_seq2pfam.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "pfam.clusters_size.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "pfam.clusters_mems.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/fastas/" , pattern: "*.pfam.faa", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam_singletons.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam_small_fams.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam_seq2pfam.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam.clusters_size.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam.clusters_mems.tsv", mode: 'copy'
 
 
 
@@ -88,7 +94,7 @@ process get_pfam_fastas {
     
     script:
     """
-    python ${params.bin_dir}pfam_fastas.py ${pfam_table} ${fasta_file}
+    python ${bin_path}pfam_fastas.py ${pfam_table} ${fasta_file}
     """
     
 }
@@ -100,12 +106,14 @@ process mmseqs_clustering {
     tag { seqs_no_pfam }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
 
-    publishDir path: "${params.clustering_output}" , mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/" , mode: 'copy'
 
     input:
     path seqs_no_pfam
@@ -135,7 +143,7 @@ process mmseqs_clustering {
        
     mmseqs createtsv ${mmseqs_db} ${mmseqs_db} ${mmseqs_clustering} ${mmseqs_tsv}
 
-    python ${params.bin_dir}rename_mmseqs_fams.py ${mmseqs_tsv} ${params.clustering_output}
+    python ${bin_path}rename_mmseqs_fams.py ${mmseqs_tsv} ${params.general_output}/clustering/
         
     """
 }
@@ -148,15 +156,17 @@ process get_mmseqs_fastas {
     tag { mmseqs_mems }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
     
-    publishDir path: "${params.fastas_output}", pattern: "*.mmseqs.faa", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "mmseqs_singletons.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "mmseqs_small_fams.tsv", mode: 'copy'
-    publishDir path: "${params.clustering_output}", pattern: "mmseqs_seq2fam.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/fastas/", pattern: "*.mmseqs.faa", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "mmseqs_singletons.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "mmseqs_small_fams.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "mmseqs_seq2fam.tsv", mode: 'copy'
 
 
     input:
@@ -172,7 +182,7 @@ process get_mmseqs_fastas {
 
     script:
     """
-    python ${params.bin_dir}mmseqs_fastas.py ${mmseqs_mems} ${seqs_no_pfam}
+    python ${bin_path}mmseqs_fastas.py ${mmseqs_mems} ${seqs_no_pfam}
     """
 }
 
@@ -185,7 +195,10 @@ process align_pfam {
     tag { raw_pfam_fasta }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -198,7 +211,7 @@ process align_pfam {
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/aln/" }, mode: 'copy'
 
     input:
     path raw_pfam_fasta 
@@ -231,7 +244,9 @@ process align_mmseqs {
     tag { raw_mmseqs_fasta }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -244,7 +259,7 @@ process align_mmseqs {
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/aln/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/aln/" }, mode: 'copy'
 
     input:
     path raw_mmseqs_fasta
@@ -278,7 +293,9 @@ process trimming_pfam {
     tag { pfam_aln }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -291,7 +308,7 @@ process trimming_pfam {
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/trim_aln/" }, mode: 'copy'
 
     input:
     path pfam_aln
@@ -302,7 +319,7 @@ process trimming_pfam {
     script:
     fasta_name = pfam_aln.baseName
     """
-    ${params.python_version} ${params.bin_dir}trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    python ${bin_path}trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
@@ -314,7 +331,9 @@ process trimming_mmseqs{
     tag { mmseqs_aln }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -327,7 +346,7 @@ process trimming_mmseqs{
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/trim_aln/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/trim_aln/" }, mode: 'copy'
 
     input:
     path mmseqs_aln
@@ -338,7 +357,7 @@ process trimming_mmseqs{
     script:
     fasta_name = mmseqs_aln.baseName
     """
-    ${params.python_version} ${params.bin_dir}trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    python ${bin_path}trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
@@ -350,7 +369,9 @@ process tree_pfam {
     tag { pfam_trim }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -363,7 +384,7 @@ process tree_pfam {
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/trees/" }, mode: 'copy'
 
     input:
     path pfam_trim
@@ -392,7 +413,9 @@ process tree_mmseqs {
     tag { mmseqs_trim }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -405,7 +428,7 @@ process tree_mmseqs {
     }
     maxRetries 3
 
-    publishDir path: { "${params.phylogenomics_output}/trees/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/phylogenomics/trees/" }, mode: 'copy'
 
     input:
     path mmseqs_trim
@@ -428,8 +451,9 @@ process ogd_pfam {
     tag { general_nw }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
-
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
     errorStrategy {
     if (task.exitStatus in 137..140) {
         // Exponential backoff strategy: delay increases with each retry
@@ -442,7 +466,7 @@ process ogd_pfam {
     maxRetries 3
 
 
-    publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/orthology/${fasta_name}/" }, mode: 'copy'
 
     input:
     path general_nw
@@ -457,8 +481,10 @@ process ogd_pfam {
     script:
     fasta_name = general_nw.baseName
     """
-    mkdir -p ${params.orthology_output}/${fasta_name}
-    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${general_nw} --output_path ./  \
+    #mkdir -p ${params.general_output}/orthology/${fasta_name}/
+
+    mkdir -p orthology/${fasta_name}/
+    og_delineation.py --tree ${general_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -475,7 +501,9 @@ process ogd_mmseqs {
     tag { general_nw }
 
     memory { params.memory * task.attempt }
-    time { params.time * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -489,7 +517,7 @@ process ogd_mmseqs {
     maxRetries 3
 
 
-    publishDir path: { "${params.orthology_output}/${fasta_name}/" }, mode: 'copy'
+    publishDir path: { "${params.general_output}/orthology/${fasta_name}/" }, mode: 'copy'
 
     input:
     path general_nw
@@ -504,8 +532,10 @@ process ogd_mmseqs {
     script:
     fasta_name = general_nw.baseName
     """
-    mkdir -p ${params.orthology_output}/${fasta_name}
-    ${params.python_version} ${params.ogd_dir}og_delineation.py --tree ${general_nw} --output_path ./  \
+    # mkdir -p ${params.general_output}/orthology/${fasta_name}/
+
+    mkdir -p orthology/${fasta_name}/
+    og_delineation.py --tree ${general_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -517,9 +547,8 @@ process ogd_mmseqs {
 workflow {
 
     create_output()
-
-
     fasta_file = Channel.fromPath(params.input)
+    
 
     // CLUSTERING //
     pfam_clustering(fasta_file)

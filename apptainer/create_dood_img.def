@@ -1,0 +1,62 @@
+BootStrap: docker
+From: ubuntu:22.04
+
+%post
+    apt -y update
+
+    # Otherwise tzdata asks for input when installing in ubuntu 22.04.
+    DEBIAN_FRONTEND=noninteractive apt install -y tzdata
+    
+    # Install the normal system packages that we want for ete4.
+    apt -y install wget python3.10-full python3-pip ipython3 python-is-python3 \
+       python3-requests python3-numpy python3-scipy \
+       python3-brotli python3-bottle mafft git
+    
+    
+    # Install ete4 itself
+    pip install --no-cache-dir https://github.com/etetoolkit/ete/archive/ete4.zip
+    pip install --no-cache-dir treeswift cvxopt numpy FastRoot eggnog-mapper
+
+    
+
+    # Descargar e instalar 
+    cd /opt
+    git clone https://github.com/AnaHrnndz/OG_Delineation.git 
+    wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz
+    wget https://github.com/refresh-bio/FAMSA/releases/download/v2.4.1/famsa-v2.4.1-x64_linux.tar.gz
+    wget http://www.microbesonline.org/fasttree/FastTree -O FastTree
+
+    tar xvf mmseqs-linux-avx2.tar.gz
+    tar xvf famsa-v2.4.1-x64_linux.tar.gz
+
+    chmod +x /opt/OG_Delineation/og_delineation.py
+    chmod +x FastTree
+    mkdir -p /opt/fasttree/bin
+    mv FastTree /opt/fasttree/bin/
+
+    
+    # Añadir  al PATH
+    echo 'export PATH="/opt/mmseqs/bin:$PATH"' >> /environment
+    echo 'export PATH="/opt/fasttree/bin:$PATH"' >> /environment
+    echo 'export PATH="/opt/OG_Delineation:$PATH"' >> /environment
+
+
+    rm mmseqs-linux-avx2.tar.gz
+
+
+   
+%environment
+    export LC_ALL=C
+    export PATH="/opt/OG_Delineation:$PATH"
+    
+    #Esto asegura que Python pueda importar correctamente utils, rooting, u otros módulos desde ese directorio cuando se ejecuta og_delineation.py.
+    export PYTHONPATH=/opt/OG_Delineation:$PYTHONPATH
+
+%runscript
+    exec python3 /opt/OG_Delineation/og_delineation.py "$@"
+
+%labels
+    Author Ana Hernández Plaza
+
+%help
+    Esta es una imagen de Apptainer para ejecutar DOOD con sus dependencias.
