@@ -9,12 +9,16 @@ from collections import defaultdict
 pfam_table = sys.argv[1]
 fasta_file = sys.argv[2]
 pfam_fams2seqs = defaultdict(set)
+seq2pfam_info = defaultdict(list)
     
 with open(pfam_table) as fin:
     for line in fin:
         if not line.startswith("#"):
             info = line.strip().split("\t")
             pfam_fams2seqs[info[1]].add(info[0])
+            
+            pfam_info = [info[1], info[7], info[8]]
+            seq2pfam_info[info[0]].append('@'.join(pfam_info))
 
 
 seqs2pfam = defaultdict(set)
@@ -49,6 +53,7 @@ if len(pfam_singletons) >0:
 
 pfam_clust_mems = open('pfam.clusters_mems.tsv', 'w')
 pfam_clust_size = open('pfam.clusters_size.tsv', 'w')
+
 #seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
 for pnam, mems in pfam_fams2seqs.items():
     pfam_clust_mems.write('\t'.join([pnam, ','.join(mems)+'\n']))
@@ -67,10 +72,13 @@ pfam_clust_size.close()
 seqs_no_pfam_path = "seqs_no_pfam.faa"
 seqs_no_pfam = open(seqs_no_pfam_path, 'w')
 seq2pfam_out = open('pfam_seq2pfam.tsv', 'w')
+seq2pfam_info_out = open('pfam_seq2pfam_info.tsv', 'w')
 for record in SeqIO.parse(fasta_file, "fasta"):
     if record.id in seqs2pfam.keys():
         all_pfams = seqs2pfam[record.id]
         seq2pfam_out.write('\t'.join([record.id, ','.join(list(all_pfams))+'\n']))
+        all_pfam_info = seq2pfam_info[record.id]
+        seq2pfam_info_out.write('\t'.join([record.id, ','.join(all_pfam_info)+'\n']))  
 
         for dom in all_pfams:    
             if dom in pfam_fastas.keys():
@@ -84,3 +92,5 @@ for record in SeqIO.parse(fasta_file, "fasta"):
         seqs_no_pfam.write(">"+record.id+"\n"+str(record.seq)+"\n")
     
 seqs_no_pfam.close()
+seq2pfam_out.close()
+seq2pfam_info_out.close()

@@ -3,6 +3,7 @@
 
     
 bin_path = "${baseDir}/bin/"
+viz_path = "${baseDir}/dood_viz/"
     
 
 
@@ -18,6 +19,7 @@ process create_output {
     path "phylogenomics/trim_aln/"
     path "phylogenomics/trees/"
     path "orthology/"
+    path "annotation/trees/"
 
 
     script:
@@ -27,6 +29,7 @@ process create_output {
     mkdir -p phylogenomics/trim_aln/
     mkdir -p phylogenomics/trees/
     mkdir -p orthology/
+    mkdir -p annotation/trees/
     """
 
 }
@@ -74,6 +77,7 @@ process get_pfam_fastas {
     publishDir path: "${params.general_output}/clustering/", pattern: "pfam_singletons.tsv", mode: 'copy'
     publishDir path: "${params.general_output}/clustering/", pattern: "pfam_small_fams.tsv", mode: 'copy'
     publishDir path: "${params.general_output}/clustering/", pattern: "pfam_seq2pfam.tsv", mode: 'copy'
+    publishDir path: "${params.general_output}/clustering/", pattern: "pfam_seq2pfam_info.tsv", mode: 'copy'  
     publishDir path: "${params.general_output}/clustering/", pattern: "pfam.clusters_size.tsv", mode: 'copy'
     publishDir path: "${params.general_output}/clustering/", pattern: "pfam.clusters_mems.tsv", mode: 'copy'
 
@@ -90,6 +94,7 @@ process get_pfam_fastas {
     path "pfam.clusters_mems.tsv"
     path "pfam.clusters_size.tsv"
     path "pfam_seq2pfam.tsv"
+    path "pfam_seq2pfam_info.tsv", emit: seq2dom_arq
     path "pfam_singletons.tsv"
     
     script:
@@ -448,7 +453,7 @@ process ogd_pfam {
 
     label 'medium'
 
-    tag { general_nw }
+    tag { pfam_nw }
 
     memory { params.memory * task.attempt }
     if (params.time) {
@@ -469,22 +474,22 @@ process ogd_pfam {
     publishDir path: { "${params.general_output}/orthology/${fasta_name}/" }, mode: 'copy'
 
     input:
-    path general_nw
+    path pfam_nw
 
     output:
-    path "*.tree_annot.nw", emit: ogd_tree
-    path "*.ogs_info.tsv", emit: ogd_info
-    path "*.seq2ogs.tsv", emit: ogd_seq2og 
-    path "*.pairs.tsv", emit: ogd_pairs 
-    path "*.stric_pairs.tsv", emit: ogd_strict_pairs 
+    path "*.tree_annot.nw", emit: pfam_ogd_tree
+    path "*.ogs_info.tsv", emit: pfam_ogd_info
+    path "*.seq2ogs.tsv", emit: pfam_ogd_seq2og 
+    path "*.pairs.tsv", emit: pfam_ogd_pairs 
+    path "*.stric_pairs.tsv", emit: pfam_ogd_strict_pairs 
 
     script:
-    fasta_name = general_nw.baseName
+    fasta_name = pfam_nw.baseName
     """
     #mkdir -p ${params.general_output}/orthology/${fasta_name}/
 
     mkdir -p orthology/${fasta_name}/
-    og_delineation.py --tree ${general_nw} --output_path ./  \
+    og_delineation.py --tree ${pfam_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -498,7 +503,7 @@ process ogd_mmseqs {
 
     label 'medium'
 
-    tag { general_nw }
+    tag { mmseqs_nw }
 
     memory { params.memory * task.attempt }
     if (params.time) {
@@ -520,22 +525,22 @@ process ogd_mmseqs {
     publishDir path: { "${params.general_output}/orthology/${fasta_name}/" }, mode: 'copy'
 
     input:
-    path general_nw
+    path mmseqs_nw
 
     output:
-    path "*.tree_annot.nw", emit: ogd_tree
-    path "*.ogs_info.tsv", emit: ogd_info
-    path "*.seq2ogs.tsv", emit: ogd_seq2og 
-    path "*.pairs.tsv", emit: ogd_pairs 
-    path "*.stric_pairs.tsv", emit: ogd_strict_pairs 
+    path "*.tree_annot.nw", emit: mmseqs_ogd_tree
+    path "*.ogs_info.tsv", emit: mmseqs_ogd_info
+    path "*.seq2ogs.tsv", emit: mmseqs_ogd_seq2og 
+    path "*.pairs.tsv", emit: mmseqs_ogd_pairs 
+    path "*.stric_pairs.tsv", emit: mmseqs_ogd_strict_pairs 
 
     script:
-    fasta_name = general_nw.baseName
+    fasta_name = mmseqs_nw.baseName
     """
     # mkdir -p ${params.general_output}/orthology/${fasta_name}/
 
     mkdir -p orthology/${fasta_name}/
-    og_delineation.py --tree ${general_nw} --output_path ./  \
+    og_delineation.py --tree ${mmseqs_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -543,6 +548,146 @@ process ogd_mmseqs {
 
 
 }
+
+
+process emapper {
+
+    label 'medium'
+
+    memory { params.memory * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
+
+    publishDir path:  "${params.general_output}/annotation/" , mode:'copy'
+
+    input:
+    path fasta_file
+    
+
+    output:
+    path "result_fannot.emapper.annotations", emit: pfam_table_annotation
+
+    script:
+    """
+    emapper.py --sensmode fast --cpu ${params.hmmer_cpu}  --data_dir ${params.emapper_dir}  \
+        -i ${fasta_file} -o result_fannot --output_dir ./
+    """
+
+}
+
+
+
+process add_func_annot_pfam {
+
+    label 'fast'
+    
+    tag { pfam_ogd_tree }
+
+    memory { params.memory * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
+
+    publishDir path: { "${params.general_output}/annotation/trees/" }, mode: 'copy'
+
+    input:
+    // Recibe una tupla con los 3 archivos
+    tuple path(pfam_ogd_tree), path(pfam_table_annotation), path(seq2dom_arq)
+
+    // path pfam_table_annotation
+    // path seq2dom_arq
+    // path pfam_ogd_tree
+
+    output:
+    path "*.fannot.nw", emit: pfam_fannot_tree
+
+    script:
+    """
+    python ${bin_path}add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${pfam_ogd_tree}
+    """
+
+}
+
+
+process add_func_annot_mmseqs {
+
+    label 'fast'
+    
+    tag { mmseqs_ogd_tree }
+
+    memory { params.memory * task.attempt }
+    if (params.time) {
+        time { params.time * task.attempt }
+    }
+
+    errorStrategy {
+    if (task.exitStatus in 137..140) {
+        // Exponential backoff strategy: delay increases with each retry
+        sleep(Math.pow(2, task.attempt) * 200 as long)
+        return 'retry'
+    } else {
+        return 'ignore'
+    }
+    }
+    maxRetries 3
+
+    publishDir path: { "${params.general_output}/annotation/trees/" }, mode: 'copy'
+
+    input:
+    // Recibe una tupla con los 3 archivos
+    tuple path(mmseqs_ogd_tree), path(pfam_table_annotation), path(seq2dom_arq)
+
+
+    output:
+    path "*.fannot.nw", emit: mmseqs_fannot_tree
+
+    script:
+    """
+    python ${bin_path}add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${mmseqs_ogd_tree}
+    """
+
+}
+
+
+process run_smartview {
+
+
+    input:
+    path tree_path
+
+    script:
+    """
+    python ${viz_path}run_ete4_smartview.py ${tree_path}
+    """
+}
+
+
+
+
+
 
 workflow {
 
@@ -572,4 +717,30 @@ workflow {
     // ORTHOLOGY //
     ogd_pfam(tree_pfam.out.pfam_nw)
     ogd_mmseqs(tree_mmseqs.out.mmseqs_nw)  
+
+    // ANNOTATION //
+    emapper(fasta_file)
+
+    
+    ogd_pfam.out.pfam_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { pfam_trees_to_annotate_channel }
+    add_func_annot_pfam(pfam_trees_to_annotate_channel)
+
+
+    ogd_mmseqs.out.mmseqs_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { mmseqs_trees_to_annotate_channel }   
+    add_func_annot_mmseqs(mmseqs_trees_to_annotate_channel)
+
+
+
+    //add_func_annot_pfam(emapper.out.pfam_table_annotation, get_pfam_fastas.out.seq2dom_arq ,ogd_pfam.out.pfam_ogd_tree)
 }
+
+
+
+workflow visualization{
+    
+    Channel.fromPath(params.tree_path).set { tree_channel }
+
+    run_smartview(tree_channel)
+}
+
+    
