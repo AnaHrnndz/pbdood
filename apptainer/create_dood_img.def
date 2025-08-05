@@ -2,26 +2,45 @@ BootStrap: docker
 From: ubuntu:22.04
 
 %post
-    apt -y update
+    # Set noninteractive frontend to avoid tzdata prompts
+    export DEBIAN_FRONTEND=noninteractive
 
-    # Otherwise tzdata asks for input when installing in ubuntu 22.04.
-    DEBIAN_FRONTEND=noninteractive apt install -y tzdata
-    
-    # Install the normal system packages that we want for ete4.
-    apt -y install wget python3.10-full python3-pip ipython3 python-is-python3 \
-       python3-requests python3-numpy python3-scipy \
-       python3-brotli python3-bottle mafft git
-    
-    
-    # Install ete4 itself
-    pip install --no-cache-dir https://github.com/etetoolkit/ete/archive/ete4.zip
-    pip install --no-cache-dir treeswift cvxopt numpy FastRoot eggnog-mapper
+    # Update and install system dependencies in a single command
+    apt-get update -y && \
+    apt-get install -y --no-install-recommends \
+        wget \
+        python3.10-full \
+        python3-pip \
+        ipython3 \
+        python-is-python3 \
+        python3-requests \
+        python3-numpy \
+        python3-scipy \
+        python3-brotli \
+        python3-bottle \
+        mafft \
+        git \
+        tzdata && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-    
+    # Install Python packages using pip in a single command
+    pip install --no-cache-dir \
+        https://github.com/etetoolkit/ete/archive/ete4.zip \
+        treeswift \
+        cvxopt \
+        numpy \
+        FastRoot \
+        eggnog-mapper
 
-    # Descargar e instalar 
+    # Download, extract, and install external tools
     cd /opt
-    git clone https://github.com/AnaHrnndz/OG_Delineation.git 
+
+    # Clone repositories
+    git clone https://github.com/AnaHrnndz/OG_Delineation.git
+    git clone https://github.com/AnaHrnndz/cpo_pipeline.git
+
+    # Download and extract binary tools
     wget https://mmseqs.com/latest/mmseqs-linux-avx2.tar.gz
     wget https://github.com/refresh-bio/FAMSA/releases/download/v2.4.1/famsa-v2.4.1-x64_linux.tar.gz
     wget http://www.microbesonline.org/fasttree/FastTree -O FastTree
@@ -29,34 +48,26 @@ From: ubuntu:22.04
     tar xvf mmseqs-linux-avx2.tar.gz
     tar xvf famsa-v2.4.1-x64_linux.tar.gz
 
-    chmod +x /opt/OG_Delineation/og_delineation.py
-    chmod +x FastTree
+    # Move FastTree to its own bin directory and set permissions
     mkdir -p /opt/fasttree/bin
     mv FastTree /opt/fasttree/bin/
+    chmod +x /opt/fasttree/bin/FastTree
+    chmod +x /opt/OG_Delineation/og_delineation.py
+    chmod +x /opt/cpo_pipeline/dood_viz/run_ete4_smartview.py
 
-    
-    # Añadir  al PATH
-    echo 'export PATH="/opt/mmseqs/bin:$PATH"' >> /environment
-    echo 'export PATH="/opt/fasttree/bin:$PATH"' >> /environment
-    echo 'export PATH="/opt/OG_Delineation:$PATH"' >> /environment
+    # Clean up downloaded archives
+    rm -f mmseqs-linux-avx2.tar.gz famsa-v2.4.1-x64_linux.tar.gz
 
-
-    rm mmseqs-linux-avx2.tar.gz
-
-
-   
 %environment
     export LC_ALL=C
-    export PATH="/opt/OG_Delineation:$PATH"
-    
-    #Esto asegura que Python pueda importar correctamente utils, rooting, u otros módulos desde ese directorio cuando se ejecuta og_delineation.py.
-    export PYTHONPATH=/opt/OG_Delineation:$PYTHONPATH
+    export PATH="/opt/mmseqs/bin:/opt/fasttree/bin:/opt/OG_Delineation:/opt/cpo_pipeline/dood_viz:$PATH"
+    export PYTHONPATH="/opt/OG_Delineation:$PYTHONPATH"
 
 %runscript
-    exec python3 /opt/OG_Delineation/og_delineation.py "$@"
+    exec python3 /opt/cpo_pipeline/dood_viz/run_ete4_smartview.py "$@"
 
 %labels
     Author Ana Hernández Plaza
 
 %help
-    Esta es una imagen de Apptainer para ejecutar DOOD con sus dependencias.
+    This is an Apptainer image to run the DOOD pipeline and its dependencies.

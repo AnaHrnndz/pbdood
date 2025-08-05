@@ -17,6 +17,6 @@ props_popup = set( ["node_name", "dist", "support", "taxid", "rank",
 t = PhyloTree(open(sys.argv[1]), parser = 0)
 tname = os.path.basename(sys.argv[1])
 
-t.explore(name = tname, layouts = all_layouts, show_leaf_name = False , keep_server=True, port=5000 )
+t.explore(name = tname, layouts = all_layouts, show_leaf_name = False , keep_server=True, port=5000, localhost='0.0.0.0' )
        
         

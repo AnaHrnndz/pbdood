@@ -672,23 +672,6 @@ process add_func_annot_mmseqs {
 }
 
 
-process run_smartview {
-
-
-    input:
-    path tree_path
-
-    script:
-    """
-    python ${viz_path}run_ete4_smartview.py ${tree_path}
-    """
-}
-
-
-
-
-
-
 workflow {
 
     create_output()
@@ -734,13 +717,3 @@ workflow {
     //add_func_annot_pfam(emapper.out.pfam_table_annotation, get_pfam_fastas.out.seq2dom_arq ,ogd_pfam.out.pfam_ogd_tree)
 }
 
-
-
-workflow visualization{
-    
-    Channel.fromPath(params.tree_path).set { tree_channel }
-
-    run_smartview(tree_channel)
-}
-
-    

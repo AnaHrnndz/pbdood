@@ -1,0 +1,10 @@
+# How to build the image
+    apptainer build dood_img.sif create_dood_img.def 
+
+# Run nextflow dood pipeline
+
+    bash /data/soft/nextflow run DOOD.nf -with-apptainer apptainer/dood_img.sif -c local.config -with-trace -resume 
+
+
+# Run visualization sctips
+    apptainer run --bind /data/projects/cpo_pipeline/data:/data/projects/cpo_pipeline/data dood_img.sif  /app/data/P53.fa.nw
