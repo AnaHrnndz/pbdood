@@ -61,10 +61,10 @@ From: ubuntu:22.04
 %environment
     export LC_ALL=C
     export PATH="/opt/mmseqs/bin:/opt/fasttree/bin:/opt/OG_Delineation:/opt/cpo_pipeline/dood_viz:$PATH"
-    export PYTHONPATH="/opt/OG_Delineation:$PYTHONPATH"
+    export PYTHONPATH="/opt/cpo_pipeline/dood_viz:$PYTHONPATH"
 
 %runscript
-    exec python3 /opt/cpo_pipeline/dood_viz/run_ete4_smartview.py "$@"
+    exec python /opt/cpo_pipeline/dood_viz/run_ete4_smartview.py "$@"
 
 %labels
     Author Ana Hernández Plaza
