@@ -2,27 +2,15 @@ BootStrap: docker
 From: ubuntu:22.04
 
 %post
-    # Set noninteractive frontend to avoid tzdata prompts
-    export DEBIAN_FRONTEND=noninteractive
 
-    # Update and install system dependencies in a single command
-    apt-get update -y && \
-    apt-get install -y --no-install-recommends \
-        wget \
-        python3.10-full \
-        python3-pip \
-        ipython3 \
-        python-is-python3 \
-        python3-requests \
-        python3-numpy \
-        python3-scipy \
-        python3-brotli \
-        python3-bottle \
-        mafft \
-        git \
-        tzdata && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    apt -y update
+
+    # Otherwise tzdata asks for input when installing in ubuntu 22.04.
+    DEBIAN_FRONTEND=noninteractive apt install -y tzdata
+    
+    # Install the normal system packages that we want for ete4.
+    apt -y install wget python3.10-full python3-pip ipython3 python-is-python3 \
+       python3-requests  python3-brotli python3-bottle mafft git
 
     # Install Python packages using pip in a single command
     pip install --no-cache-dir \
@@ -31,7 +19,10 @@ From: ubuntu:22.04
         cvxopt \
         numpy \
         FastRoot \
-        eggnog-mapper
+        eggnog-mapper \
+        pandas \
+        "numpy>='1.17.3,<1.25.0'" \
+        scipy 
 
     # Download, extract, and install external tools
     cd /opt

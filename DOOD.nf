@@ -20,6 +20,7 @@ process create_output {
     path "phylogenomics/trees/"
     path "orthology/"
     path "annotation/trees/"
+    path "summary"
 
 
     script:
@@ -30,6 +31,7 @@ process create_output {
     mkdir -p phylogenomics/trees/
     mkdir -p orthology/
     mkdir -p annotation/trees/
+    mkdir -p summary/
     """
 
 }
@@ -671,6 +673,30 @@ process add_func_annot_mmseqs {
 
 }
 
+process run_summary {
+
+    label 'fast'
+
+    publishDir path: { "${params.general_output}/summary/" }, mode: 'copy'
+
+    input:
+    val finished_signal
+    path fasta_file
+
+
+    output:
+    path 'sp_vs_sp.tsv', emit: sp_vs_sp
+    path 'singlecopy_genes.tsv', emit: singlecopy_genes
+    path 'ogs_ordered_by_taxid.tsv', emit: ogs_ordered_by_taxid
+    path 'dups_counter.tsv', emit: dups_counter
+    path 'total_ogs.tsv', emit: total_ogs
+    path 'total_pairs.tsv', emit:total_pairs
+
+    script:
+    """ 
+    python ${bin_path}summary.py ${fasta_file} ${params.general_output}/orthology ${params.ogd_sp_delimitator}
+    """
+}
 
 workflow {
 
@@ -696,24 +722,30 @@ workflow {
     trimming_mmseqs(align_mmseqs.out.mmseqs_aln)
     tree_mmseqs(trimming_mmseqs.out.mmseqs_trim)
     
-
     // ORTHOLOGY //
     ogd_pfam(tree_pfam.out.pfam_nw)
     ogd_mmseqs(tree_mmseqs.out.mmseqs_nw)  
 
+    // SUMMARY //
+
+    def pfam_finished = ogd_pfam.out.pfam_ogd_tree.collect()
+    def mmseqs_finished = ogd_mmseqs.out.mmseqs_ogd_tree.collect()
+    
+    // Combina los canales de 'finalizado' para que run_summary espere por ambos.
+    def sync_channel = pfam_finished.combine(mmseqs_finished)
+
+    // SUMMARY //
+    run_summary(sync_channel, fasta_file)
+
     // ANNOTATION //
     emapper(fasta_file)
-
     
     ogd_pfam.out.pfam_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { pfam_trees_to_annotate_channel }
     add_func_annot_pfam(pfam_trees_to_annotate_channel)
-
 
     ogd_mmseqs.out.mmseqs_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { mmseqs_trees_to_annotate_channel }   
     add_func_annot_mmseqs(mmseqs_trees_to_annotate_channel)
 
 
-
-    //add_func_annot_pfam(emapper.out.pfam_table_annotation, get_pfam_fastas.out.seq2dom_arq ,ogd_pfam.out.pfam_ogd_tree)
 }
 
