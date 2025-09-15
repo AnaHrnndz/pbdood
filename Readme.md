@@ -1,4 +1,4 @@
-# DOOD: Domain Oriented Orthology Delineation
+# PBDOOD: Phylogeny-based Domain-rriented Orthology Delineation
 
 ![Graphical summary of the DOOD pipeline](images/graphical_summary.jpg "Summary of the DOOD workflow")
 
