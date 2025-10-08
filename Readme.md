@@ -17,7 +17,7 @@
 
 ## ⚙️ Pipeline Steps
 
-The fundamental process of PBDOOD is divided into three main stages:
+The fundamental process of PBDOOD is divided into three main steps:
 
 ### 1. Domain and *De Novo* Clustering
 Preparation of the initial protein families (PfamFams and UnkFams).
@@ -29,7 +29,7 @@ Generation of high-quality alignments and inference of phylogenetic trees.
 This robust algorithm analyzes the trees to detect duplications and define OGs. Key steps include:
 * **Tree Setup:** Resolving polytomies, tree rooting, and adding taxonomic annotation from the NCBI taxonomy.
 * **Taxonomic Misplacement Detection:** Identification of sequences likely misplaced within the tree.
-* **Species Overlap Calculation:** Calculated for every internal node.
+* **Species Overlap Calculation:** For each internal node the algorithm calculates the species overlap, the proportion of shared species between two child nodes relative to the total number of species in the node .
 * **Duplication Detection:** Identification of duplications that give rise to orthologous groups with a low rate of paralogs.
 
 ---
