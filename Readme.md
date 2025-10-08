@@ -15,7 +15,7 @@
 
 ---
 
-## ⚙️ Pipeline Architecture and Steps
+## ⚙️ Pipeline Steps
 
 The fundamental process of PBDOOD is divided into three main stages:
 
@@ -116,7 +116,7 @@ If you prefer to manage dependencies manually.
 
 ---
 
-## 📤 Input Files
+##  Input Files
 
 DOOD requires a main FASTA file and optional reference files.
 
@@ -130,7 +130,7 @@ DOOD requires a main FASTA file and optional reference files.
 
 ---
 
-## 🔑 Execution Parameters
+##  Execution Parameters
 
 Key parameters are managed via a configuration file (e.g., `local.config`). You can adjust these values to adapt the pipeline to your working environment.
 
@@ -149,7 +149,7 @@ Key parameters are managed via a configuration file (e.g., `local.config`). You 
 
 ---
 
-## 🏃 How to Run DOOD
+##  How to Run DOOD
 
 ### Local Execution
 
