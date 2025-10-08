@@ -229,7 +229,7 @@ process align_pfam {
     script:
     fasta_name = raw_pfam_fasta.baseName
     """
-    #famsa -t ${params.famsa_threads} ${raw_pfam_fasta} ${fasta_name}.aln 2> align.err  
+    
 
     num_seqs=\$(grep -c '^>' ${raw_pfam_fasta})
     if [ "\$num_seqs" -gt 1000 ]; then
@@ -278,7 +278,7 @@ process align_mmseqs {
     script:
     fasta_name = raw_mmseqs_fasta.baseName
     """
-    #famsa -t ${params.famsa_threads} ${raw_mmseqs_fasta} ${fasta_name}.aln 2> align.err
+   
 
     num_seqs=\$(grep -c '^>' ${raw_mmseqs_fasta})
     if [ "\$num_seqs" -gt 1000 ]; then
@@ -447,7 +447,12 @@ process tree_mmseqs {
     script:
     fasta_name = mmseqs_trim.baseName
     """
-    FastTree ${mmseqs_trim} > ${fasta_name}.nw  
+    if [ ${task.attempt} -gt 1 ]
+    then    
+        FastTree -fastest  ${mmseqs_trim} > ${fasta_name}.nw  
+    else
+        FastTree ${mmseqs_trim} > ${fasta_name}.nw  
+    si
     """
 }
 
@@ -731,7 +736,7 @@ workflow {
     def pfam_finished = ogd_pfam.out.pfam_ogd_tree.collect()
     def mmseqs_finished = ogd_mmseqs.out.mmseqs_ogd_tree.collect()
     
-    // Combina los canales de 'finalizado' para que run_summary espere por ambos.
+    
     def sync_channel = pfam_finished.combine(mmseqs_finished)
 
     // SUMMARY //
