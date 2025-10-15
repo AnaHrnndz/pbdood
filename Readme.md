@@ -149,7 +149,7 @@ Key parameters are managed via a configuration file (e.g., `local.config`). You 
 
 ---
 
-##  How to Run DOOD
+##  How to Run PBDOOD
 
 ### Local Execution
 
@@ -175,4 +175,15 @@ Key parameters are managed via a configuration file (e.g., `local.config`). You 
 To submit DOOD to an HPC cluster (e.g., with Slurm), use a submission script and specify the Slurm configuration:
 
 ```bash
-sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf slurm.config
+sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf slurm.config  
+```
+
+---
+## Benchmarck
+
+We evaluated our PBDOOD pipeline using the Quest for Orthologs (QfO) benchmarking tool and the 2022 reference proteomes dataset. This dataset comprises 79 proteomes from species belonging to the domains Bacteria, Eukaryota and Archaea. You can find all the tests in the benchmark folder; here are some of the results.
+
+![test1](benchmark/dood_swisstrees.png "Swisstrees test")
+![test2](benchmark/dood_ec.png "EC test") 
+![test3](benchmark/dood_std_luca_ncomptrees_rfdist.png "LUCA Generalized Species test") 
+
