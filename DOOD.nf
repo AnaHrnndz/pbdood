@@ -7,6 +7,14 @@ viz_path = "${baseDir}/dood_viz/"
     
 
 
+// Reutilizamos árboles, anotaciones y mappings desde archivos existentes
+ch_pfam_trees    = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
+ch_mmseqs_trees  = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
+ch_annotations   = Channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
+ch_seq2pfam      = Channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
+ch_input_seqs    = Channel.fromPath(params.input)
+
+
 process create_output {
 
     label 'fast'
@@ -21,6 +29,7 @@ process create_output {
     path "orthology/"
     path "annotation/trees/"
     path "summary"
+    path "emapper_results/"
 
 
     script:
@@ -32,6 +41,7 @@ process create_output {
     mkdir -p orthology/
     mkdir -p annotation/trees/
     mkdir -p summary/
+    mkdir -p emapper_results/
     """
 
 }
@@ -452,7 +462,7 @@ process tree_mmseqs {
         FastTree -fastest  ${mmseqs_trim} > ${fasta_name}.nw  
     else
         FastTree ${mmseqs_trim} > ${fasta_name}.nw  
-    si
+    fi
     """
 }
 
@@ -488,7 +498,7 @@ process ogd_pfam {
     path "*.ogs_info.tsv", emit: pfam_ogd_info
     path "*.seq2ogs.tsv", emit: pfam_ogd_seq2og 
     path "*.pairs.tsv", emit: pfam_ogd_pairs 
-    path "*.stric_pairs.tsv", emit: pfam_ogd_strict_pairs 
+    path "*.strict_pairs.tsv", emit: pfam_ogd_strict_pairs 
 
     script:
     fasta_name = pfam_nw.baseName
@@ -496,7 +506,8 @@ process ogd_pfam {
     #mkdir -p ${params.general_output}/orthology/${fasta_name}/
 
     mkdir -p orthology/${fasta_name}/
-    og_delineation.py --tree ${pfam_nw} --output_path ./  \
+    
+    og_delineation.py --tree ${pfam_nw} --output_path ./ \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -539,7 +550,7 @@ process ogd_mmseqs {
     path "*.ogs_info.tsv", emit: mmseqs_ogd_info
     path "*.seq2ogs.tsv", emit: mmseqs_ogd_seq2og 
     path "*.pairs.tsv", emit: mmseqs_ogd_pairs 
-    path "*.stric_pairs.tsv", emit: mmseqs_ogd_strict_pairs 
+    path "*.strict_pairs.tsv", emit: mmseqs_ogd_strict_pairs 
 
     script:
     fasta_name = mmseqs_nw.baseName
@@ -577,7 +588,7 @@ process emapper {
     }
     maxRetries 3
 
-    publishDir path:  "${params.general_output}/annotation/" , mode:'copy'
+    publishDir path:  "${params.general_output}/emapper_results/" , mode:'copy'
 
     input:
     path fasta_file
@@ -699,9 +710,27 @@ process run_summary {
 
     script:
     """ 
-    python ${bin_path}summary.py ${fasta_file} ${params.general_output}/orthology ${params.ogd_sp_delimitator}
+    python ${bin_path}summary.py ${fasta_file} ${params.general_output}/orthology ${params.general_output}/clustering ${params.ogd_sp_delimitator} ${params.ogd_taxonomy_db}
     """
 }
+
+
+
+process run_ogd_smartview {
+
+    input:
+    path input_tree
+
+    output:
+
+
+    script:
+    """
+    og_delineation.py --tree ${input_tree} --output_path ./  --only_visualization
+        
+    """
+}
+
 
 workflow {
 
@@ -752,5 +781,84 @@ workflow {
     add_func_annot_mmseqs(mmseqs_trees_to_annotate_channel)
 
 
+}
+
+
+workflow run_smartview {
+
+    input_tree = Channel.fromPath(params.input_tree)
+    run_ogd_smartview(input_tree)
+
+
+}
+
+
+
+workflow ogd_rerun {
+    
+    
+    ch_pfam_trees    = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
+    ch_mmseqs_trees  = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
+    ch_annotations   = Channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
+    ch_seq2pfam      = Channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
+    ch_input_seqs    = Channel.fromPath(params.input)
+
+   
+    ogd_pfam(ch_pfam_trees)
+    ogd_mmseqs(ch_mmseqs_trees)
+
+    
+    add_func_annot_pfam(
+        ogd_pfam.out.pfam_ogd_tree
+            .combine(ch_annotations)
+            .combine(ch_seq2pfam)
+    )    
+
+    add_func_annot_mmseqs(
+        ogd_mmseqs.out.mmseqs_ogd_tree
+            .combine(ch_annotations)
+            .combine(ch_seq2pfam)
+    )
+    
+    
+}
+
+
+workflow summary_only {
+    
+    
+    ch_existing_pfam_ogd   = Channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
+                                    .filter { it.name.contains('pfam') } 
+                                    
+    ch_existing_mmseqs_ogd = Channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
+                                    .filter { it.name.contains('mmseqs') }
+
+    ch_input_seqs          = Channel.fromPath(params.input)
+
+    
+    SUB_RUN_SUMMARY(
+        ch_existing_pfam_ogd,
+        ch_existing_mmseqs_ogd,
+        ch_input_seqs
+    )
+}
+
+
+workflow SUB_RUN_SUMMARY {
+    take:
+        pfam_trees      
+        mmseqs_trees    
+        fasta_input     
+
+    main:
+        
+        pfam_finished = pfam_trees.collect()
+        mmseqs_finished = mmseqs_trees.collect()
+        
+        
+        sync_channel = pfam_finished.combine(mmseqs_finished)
+        
+       
+        run_summary(sync_channel, fasta_input)
 }
 

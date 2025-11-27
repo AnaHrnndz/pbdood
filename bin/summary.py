@@ -7,7 +7,7 @@ from ete4 import NCBITaxa
 import json
 import sys
 
-ncbi = NCBITaxa('/data/projects/cpo_pipeline/data/ete_taxonomy/e6.taxa.sqlite')
+
 
 
 def get_total_num_seqs_pure_python(fasta_file):
@@ -23,7 +23,7 @@ def get_total_num_seqs_pure_python(fasta_file):
         return 0
 
 
-def get_ogs_info(list_ogs, output_dir):
+def get_ogs_info(list_ogs, output_dir, ncbi):
         
     
     
@@ -76,7 +76,7 @@ def get_ogs_info(list_ogs, output_dir):
     return total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy
                 
 
-def get_pairs_info(list_pairs, sp_delimiter):
+def get_pairs_info(list_pairs, small_fams, sp_delimiter):
 
     
     sp_vs_sp_counts = defaultdict(lambda: defaultdict(int))
@@ -86,12 +86,10 @@ def get_pairs_info(list_pairs, sp_delimiter):
     
 
     for path2pairs in list_pairs:
-        name = os.path.basename(path2pairs).replace('.stric_pairs.tsv', '')
+        name = os.path.basename(path2pairs).replace('.strict_pairs.tsv', '')
         with open(path2pairs) as fin:
             for line in fin:
-                info = line.strip().split('\t')
-                
-                
+                info = line.strip().split('\t')           
 
                 sp1 = info[0].split(sp_delimiter)[0]
                 sp2 = info[1].split(sp_delimiter)[0]
@@ -101,18 +99,42 @@ def get_pairs_info(list_pairs, sp_delimiter):
 
                 unique_pair = tuple(sorted((info[0], info[1])))
 
-                # Verificamos si este par ya ha sido procesado.
+                
                 if unique_pair not in processed_pairs:
                     
                     all_species.add(sp1)
                     all_species.add(sp2)
 
-                    # Si el par es nuevo, lo agregamos al conjunto y aumentamos el contador.
+                    
                     processed_pairs.add(unique_pair)
                     info.append(name)
                     total_pairs.add(tuple(info))
                     sp_vs_sp_counts[sp1][sp2] += 1
                     sp_vs_sp_counts[sp2][sp1] += 1
+
+
+    for path2small_fam in small_fams:
+        with open(path2small_fam) as fin:
+            for line in fin:
+                famname, pairs = line.strip().split('\t')
+                p1,p2 = pairs.split(',')
+                sp1, seqname1 = p1.split(sp_delimiter)
+                sp2, seqname = p2.split(sp_delimiter)
+
+                if sp1 == sp2:
+                    continue
+
+                unique_pair = tuple(sorted((p1, p2)))
+
+                all_species.add(sp1)
+                all_species.add(sp2)
+
+                processed_pairs.add(unique_pair)
+                info = [p1, p2, 'one-to-one', '-', famname]
+                total_pairs.add(tuple(info))
+                sp_vs_sp_counts[sp1][sp2] += 1
+                sp_vs_sp_counts[sp2][sp1] += 1
+
 
     species_list = sorted(list(all_species))
     matrix_data = np.zeros((len(species_list), len(species_list)))
@@ -128,7 +150,7 @@ def get_pairs_info(list_pairs, sp_delimiter):
 
 
 
-def writint_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy):
+def writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy):
 
     summary_outfile = output_dir+'sp_vs_sp.tsv'
     single_copy_outfile = open(output_dir+'singlecopy_genes.tsv', 'w')
@@ -175,18 +197,23 @@ path2fastafile = sys.argv[1]
 total_genes = get_total_num_seqs_pure_python(path2fastafile)
 
 orthology_dir = sys.argv[2]
+clustering_dir = sys.argv[3]
 output_dir = os.getcwd()+'/'
 
 all_ogs = glob.glob(orthology_dir+'/*/'+'*.ogs_info.tsv')
 
 all_seqs2ogs = glob.glob(orthology_dir+'/*/'+'*.seq2ogs.tsv')
-all_pairs =  glob.glob(orthology_dir+'/*/'+'*.stric_pairs.tsv')
-sp_delimiter = sys.argv[3]
+all_pairs =  glob.glob(orthology_dir+'/*/'+'*.strict_pairs.tsv')
+small_fams = glob.glob(clustering_dir+'/'+'*_small_fams.tsv')
 
 
-total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy = get_ogs_info(all_ogs, output_dir)
+sp_delimiter = sys.argv[4]
 
-summary_df, total_pairs = get_pairs_info(all_pairs, sp_delimiter)
+ncbi = NCBITaxa(sys.argv[5])
 
-writint_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy)
+total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy = get_ogs_info(all_ogs, output_dir, ncbi)
+
+summary_df, total_pairs = get_pairs_info(all_pairs, small_fams, sp_delimiter)
+
+writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy)
 

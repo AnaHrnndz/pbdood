@@ -66,11 +66,7 @@ This method is the simplest, as it encapsulates all dependencies.
     cd cpo_nextflow
     ```
 
-3.  **Download the Apptainer Image:**
-    Download the image (`dood_img.sif`) from the link below and place it in a designated directory (e.g., `apptainer/`).
-    `https://saco.csic.es/s/eQWa5qsGRW2EqxF`
-
-4.  **Download and Set Up Data:**
+3.  **Download and Set Up Data:**
     Download the necessary `data` folder from the link below. Place this `data` folder in the same directory as your main *script* `DOOD.nf`.
     `https://saco.csic.es/s/xjzGL86Cj2x2WJs`
 
@@ -85,7 +81,7 @@ This method is the simplest, as it encapsulates all dependencies.
     >         └── proteomes.fasta
     > ```
 
-5.  **Example Execution:**
+4.  **Example Execution:**
     Run the complete pipeline using the Apptainer image:
     ```bash
     bash ./nextflow run DOOD.nf -with-apptainer apptainer/dood_img.sif -c local.config -with-trace -resume
@@ -153,30 +149,24 @@ Key parameters are managed via a configuration file (e.g., `local.config`). You 
 
 ### Local Execution
 
-* **Run the entire pipeline with Apptainer:**
+* **Run the entire pipeline :**
     ```bash
-    bash /path/to/nextflow run DOOD.nf -with-apptainer apptainer/dood_img.sif -c local.config -with-trace -resume
+    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume
     ```
     *(Replace `/path/to/nextflow` with the actual path to your Nextflow executable.)*
 
-* **Re-run up to a specific process (using `-until`):**
+* **Re-run OGD step (using `-entry`):**
     Useful for resuming execution from a checkpoint, for example, restarting only Orthology Delineation (OGD):
     ```bash
-    bash /path/to/nextflow run DOOD.nf -c new_local.config -with-trace -resume -until ogd_pfam,ogd_mmseqs
+    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume -resume -entry ogd_rerun
+    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume -resume -entry summary_only
     ```
 
-* **Run individual modules/sub-workflows (using `-entry`):**
+* **Run smartview (using `-entry`):**
     ```bash
-    bash /path/to/nextflow run subworkflows/orthology.nf -c local.config -resume -entry MODULE_ORTHOLOGY
+    bash /path/to/nextflow run subworkflows/DOOD.nf --input_tree path_to_ogd_treefile.nw -entry run_smartview
     ```
 
-### HPC Execution
-
-To submit DOOD to an HPC cluster (e.g., with Slurm), use a submission script and specify the Slurm configuration:
-
-```bash
-sbatch run_cpo_pipeline.sh cpo_nextflow/DOOD.nf slurm.config  
-```
 
 ---
 ## Benchmarck
