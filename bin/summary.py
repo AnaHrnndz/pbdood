@@ -52,17 +52,18 @@ def get_ogs_info(list_ogs, output_dir, ncbi):
                 tax = ogname.split('@')[1].split('|')[0]
                 sp_set = set([s.split('.')[0] for s in info[14].split(',')])
 
+                if info[1] != '-':
+                    lca_dup = info[1]
+                    dups_by_tax[lca_dup] += 1
+                
                 seqs_in_ogs.update(set(info[14].split(',')))
 
                 if len(sp_set) == len(info[14].split(',')):
                     single_copy.add(ogname)
 
-                dups_by_tax[tax] += 1
-
                 lin_set = set()
                 for sp in sp_set:
                     lin_set.update(set(ncbi.get_lineage(sp)))
-
 
                 for l in lin_set:
                     if l not in ogs_order_by_tax.keys():
@@ -153,7 +154,7 @@ def get_pairs_info(list_pairs, small_fams, sp_delimiter):
 def writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy):
 
     summary_outfile = output_dir+'sp_vs_sp.tsv'
-    single_copy_outfile = open(output_dir+'singlecopy_genes.tsv', 'w')
+    single_copy_outfile = open(output_dir+'singlecopy_ogs.tsv', 'w')
     ogs_ordered_outfile = open(output_dir+'ogs_ordered_by_taxid.tsv', 'w')
     dups_counter_outfile = open(output_dir+'dups_counter.tsv', 'w')
     total_ogs_outfile = open(output_dir+'total_ogs.tsv', 'w')
