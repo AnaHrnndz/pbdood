@@ -1,16 +1,16 @@
-# environment.yml — Entorno conda/Bioconda para PBDOOD
+# environment.yml — conda/Bioconda environment for PBDOOD
 #
-# Crear/activar:
-#     conda env create -f environment.yml      # (o: mamba env create -f environment.yml)
+# Create/activate:
+#     conda env create -f environment.yml      # (or: mamba env create -f environment.yml)
 #     conda activate pbdood
 #
-# Recomendado fijar prioridad estricta de canales antes de crear el entorno:
+# Recommended: enable strict channel priority before creating the environment:
 #     conda config --set channel_priority strict
 #
-# NOTA sobre versiones: el .def de Apptainer original usaba binarios "latest"
-# (mmseqs) y HMMER 3.1b2. Aquí se fijan versiones estables de Bioconda para que
-# el entorno sea reproducible. Si tus resultados del benchmark se generaron con
-# versiones concretas, sustitúyelas por esas para reproducibilidad exacta.
+# NOTE on versions: the original Apptainer .def used "latest" binaries (mmseqs)
+# and HMMER 3.1b2. Stable Bioconda versions are pinned here for reproducibility.
+# If your benchmark results were produced with specific versions, replace these
+# with those exact versions for an identical environment.
 
 name: pbdood
 
@@ -21,26 +21,26 @@ channels:
 dependencies:
   - python=3.10
 
-  # --- Clustering / búsqueda de dominios ---
-  - bioconda::eggnog-mapper=2.1.13   # aporta hmm_mapper.py / emapper.py
-  - bioconda::hmmer=3.4              # hmmpgmd para el modo --usemem de hmm_mapper
-  - bioconda::mmseqs2=15.6f452       # clustering de novo (UnkFams)
+  # --- Clustering / domain search ---
+  - bioconda::eggnog-mapper=2.1.13   # provides hmm_mapper.py / emapper.py
+  - bioconda::hmmer=3.4              # hmmpgmd for hmm_mapper's --usemem mode
+  - bioconda::mmseqs2=15.6f452       # de novo clustering (UnkFams)
 
-  # --- Filogenómica (MSA + árboles) ---
+  # --- Phylogenomics (MSA + trees) ---
   - bioconda::famsa=2.4.1
   - bioconda::mafft=7.526
   - bioconda::fasttree=2.1.11
 
-  # --- Dependencias que ete4 / FastRoot necesitan para compilar y ejecutar ---
-  - conda-forge::numpy<1.25          # ete4 4.3.x requiere numpy<1.25
+  # --- Dependencies needed to build and run ete4 / FastRoot ---
+  - conda-forge::numpy<1.25          # ete4 4.3.x requires numpy<1.25
   - conda-forge::scipy
-  - conda-forge::cvxopt              # rooting MinVar de FastRoot
+  - conda-forge::cvxopt              # MinVar rooting in FastRoot
   - conda-forge::pandas
-  - conda-forge::cython              # build de ete4
-  - conda-forge::cxx-compiler        # build de ete4
+  - conda-forge::cython              # ete4 build
+  - conda-forge::cxx-compiler        # ete4 build
   - conda-forge::pip
 
-  # --- Paquetes solo disponibles vía pip (alineados con OG_Delineation) ---
+  # --- Packages only available via pip (aligned with OG_Delineation) ---
   - pip:
       - ete4==4.3.0
       - FastRoot==1.5
