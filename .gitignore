@@ -1,0 +1,25 @@
+# Nextflow
+.nextflow/
+.nextflow.log*
+work/
+results/
+results_test/
+
+# Dependencia externa que coloca install.sh (no versionar)
+external/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Contenedores
+*.sif
+*.img
+
+# Sistema operativo / editores
+.DS_Store
+*.swp
+.idea/
+.vscode/

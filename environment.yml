@@ -1,0 +1,46 @@
+# environment.yml — Entorno conda/Bioconda para PBDOOD
+#
+# Crear/activar:
+#     conda env create -f environment.yml      # (o: mamba env create -f environment.yml)
+#     conda activate pbdood
+#
+# Recomendado fijar prioridad estricta de canales antes de crear el entorno:
+#     conda config --set channel_priority strict
+#
+# NOTA sobre versiones: el .def de Apptainer original usaba binarios "latest"
+# (mmseqs) y HMMER 3.1b2. Aquí se fijan versiones estables de Bioconda para que
+# el entorno sea reproducible. Si tus resultados del benchmark se generaron con
+# versiones concretas, sustitúyelas por esas para reproducibilidad exacta.
+
+name: pbdood
+
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=3.10
+
+  # --- Clustering / búsqueda de dominios ---
+  - bioconda::eggnog-mapper=2.1.13   # aporta hmm_mapper.py / emapper.py
+  - bioconda::hmmer=3.4              # hmmpgmd para el modo --usemem de hmm_mapper
+  - bioconda::mmseqs2=15.6f452       # clustering de novo (UnkFams)
+
+  # --- Filogenómica (MSA + árboles) ---
+  - bioconda::famsa=2.4.1
+  - bioconda::mafft=7.526
+  - bioconda::fasttree=2.1.11
+
+  # --- Dependencias que ete4 / FastRoot necesitan para compilar y ejecutar ---
+  - conda-forge::numpy<1.25          # ete4 4.3.x requiere numpy<1.25
+  - conda-forge::scipy
+  - conda-forge::cvxopt              # rooting MinVar de FastRoot
+  - conda-forge::pandas
+  - conda-forge::cython              # build de ete4
+  - conda-forge::cxx-compiler        # build de ete4
+  - conda-forge::pip
+
+  # --- Paquetes solo disponibles vía pip (alineados con OG_Delineation) ---
+  - pip:
+      - ete4==4.3.0
+      - FastRoot==1.5
