@@ -1,179 +1,184 @@
 # 🧬 PBDOOD: Phylogeny-based Domain-oriented Orthology Delineation
 
-**PBDOOD** is a bioinformatics pipeline designed to identify **Orthologous Groups (OGs)** across various proteomes. It leverages the **Nextflow** framework to automate a multi-step process, including initial protein clustering based on Pfam domains, phylogenetic tree building, and a final orthology analysis to define OGs.
+**PBDOOD** is a bioinformatics pipeline designed to identify **Orthologous Groups (OGs)** across multiple proteomes. It uses the **Nextflow** framework to automate a multi-step process: initial protein clustering based on Pfam domains, phylogenetic tree building, and a final orthology analysis to define OGs.
 
-![Diagrama resumido del flujo de trabajo de DOOD](images/graphical_summary.jpg "Summary of the DOOD workflow")
+![Summary of the PBDOOD workflow](images/fig43.png "Summary of the PBDOOD workflow")
 
 ---
 
 ## ✨ Key Features
 
-* **Domain-Based Clustering (PfamFams):** Initial protein clustering groups sequences into Pfam families. Multi-domain sequences are assigned to all relevant Pfam families.
-* **De Novo Clustering (UnkFams):** Sequences without identifiable Pfam domains are clustered separately using **MMseqs2**.
-* **Automated Gene Tree Building:** For families with $\ge 3$ sequences, DOOD automatically generates multiple sequence alignments (MSAs), removes uninformative columns, and infers a gene tree.
-* **Orthology Delineation (OGD):** The pipeline employs the OGD algorithm to analyze each gene tree, detect gene duplication events, and define OGs at various taxonomic levels, maintaining a hierarchical structure.
+* **Domain-based clustering (PfamFams):** Initial clustering groups sequences into Pfam families. Multi-domain sequences are assigned to all relevant Pfam families.
+* **De novo clustering (UnkFams):** Sequences without identifiable Pfam domains are clustered separately using **MMseqs2**.
+* **Automated gene-tree building:** For families with ≥ 3 sequences, PBDOOD generates multiple sequence alignments (MSAs), removes uninformative columns, and infers a gene tree.
+* **Orthology delineation (OGD):** The OGD algorithm analyses each gene tree, detects gene-duplication events, and defines OGs at multiple taxonomic levels, keeping a hierarchical structure.
 
 ---
 
 ## ⚙️ Pipeline Steps
 
-The fundamental process of PBDOOD is divided into three main steps:
+The pipeline is divided into three main steps:
 
-### 1. Domain and *De Novo* Clustering
+### 1. Domain and *de novo* clustering
 Preparation of the initial protein families (PfamFams and UnkFams).
 
-### 2. Phylogenomics (MSA + Trimming + Tree Building)
-Generation of high-quality alignments and inference of phylogenetic trees.
+### 2. Phylogenomics (MSA + trimming + tree building)
+Generation of high-quality alignments and inference of gene trees.
 
-### 3. Orthology Delineation (OGD)
-This robust algorithm analyzes the trees to detect duplications and define OGs. Key steps include:
-* **Tree Setup:** Resolving polytomies, tree rooting, and adding taxonomic annotation from the NCBI taxonomy.
-* **Taxonomic Misplacement Detection:** Identification of sequences likely misplaced within the tree.
-* **Species Overlap Calculation:** For each internal node the algorithm calculates the species overlap, the proportion of shared species between two child nodes relative to the total number of species in the node .
-* **Duplication Detection:** Identification of duplications that give rise to orthologous groups with a low rate of paralogs.
+### 3. Orthology delineation (OGD)
+This algorithm analyses the trees to detect duplications and define OGs. Key steps include:
+* **Tree setup:** resolving polytomies, tree rooting, and adding taxonomic annotation from the NCBI taxonomy.
+* **Taxonomic misplacement detection:** identification of sequences likely misplaced within the tree.
+* **Species-overlap calculation:** for each internal node, the proportion of species shared between the two child nodes relative to the total number of species in the node.
+* **Duplication detection:** identification of duplications that give rise to orthologous groups with a low rate of paralogs.
 
 ---
 
 ## 📋 Requirements and Dependencies
 
-PBDOOD requires **Nextflow** as its workflow manager. To simplify execution, an **Apptainer** (Singularity) image is provided that includes all necessary dependencies.
+PBDOOD requires:
 
-### Dependencies Included in the Apptainer Image
+* **Nextflow** (≥ 23.04) as the workflow manager.
+* **conda** or **mamba** to install the rest of the dependencies (recommended), or a container engine (Docker/Apptainer).
+
+All bioinformatics tools are installed automatically through the provided `environment.yml`:
 
 | Category | Tools |
 | :--- | :--- |
-| **Clustering** | `eggnog-mapper`, `HMMER v3.1b2`, `MMseqs2`, `BioPython` |
-| **Phylogenomics** | `Famsa`, `Mafft`, `FastTree` |
+| **Clustering** | `eggnog-mapper`, `HMMER`, `MMseqs2` |
+| **Phylogenomics** | `FAMSA`, `MAFFT`, `FastTree` |
 | **Orthology** | `ETE4`, `FastRoot` |
 
----
-
-## 💻 Installation and Execution
-
-### 1. With Apptainer (Recommended)
-
-This method is the simplest, as it encapsulates all dependencies.
-
-1.  **Install Nextflow:**
-    ```bash
-    curl -s [https://get.nextflow.io](https://get.nextflow.io) | bash
-    chmod +x nextflow
-    ```
-
-2.  **Clone the DOOD repository:**
-    ```bash
-    git clone git@github.com:AnaHrnndz/cpo_nextflow.git
-    cd cpo_nextflow
-    ```
-
-3.  **Download and Set Up Data:**
-    Download the necessary `data` folder from the link below. Place this `data` folder in the same directory as your main *script* `DOOD.nf`.
-    `https://saco.csic.es/s/xjzGL86Cj2x2WJs`
-
-    > **Project Structure:**
-    > ```
-    > cpo_nextflow/
-    >     ├── DOOD.nf
-    >     ├── bin/
-    >     └── data/  # Downloaded data folder
-    >         ├── pfam/
-    >         ├── ete_taxonomy/
-    >         └── proteomes.fasta
-    > ```
-
-4.  **Example Execution:**
-    Run the complete pipeline using the Apptainer image:
-    ```bash
-    bash ./nextflow run DOOD.nf -with-apptainer apptainer/dood_img.sif -c local.config -with-trace -resume
-    ```
+> The orthology step relies on **OG_Delineation** (`og_delineation.py`), which is not distributed via conda/pip. The `install.sh` script fetches it automatically, pinned to a specific commit, into `external/`.
 
 ---
 
-### 2. Manual Installation
+## 💻 Installation
 
-If you prefer to manage dependencies manually.
+### Recommended: conda
 
-1.  **Create Conda Environment and Clone:**
-    ```bash
-    conda create -n dood_env python=3.10
-    conda activate dood_env
-    git clone git@github.com:AnaHrnndz/cpo_nextflow.git
-    ```
+1. **Install Nextflow** (requires Java 11+):
+   ```bash
+   curl -s https://get.nextflow.io | bash
+   chmod +x nextflow
+   # optionally move it somewhere on your PATH, e.g. ~/.local/bin
+   ```
+   Alternatively, Nextflow is also available via conda: `conda install -c bioconda nextflow`.
 
-2.  **Install Python Libraries:**
-    ```bash
-    pip install BioPython FastRoot eggnog-mapper
-    # Forced ETE4 installation
-    pip install --force-reinstall [https://github.com/etetoolkit/ete/archive/ete4.zip](https://github.com/etetoolkit/ete/archive/ete4.zip)
-    ```
+2. **Clone the repository:**
+   ```bash
+   git clone https://github.com/AnaHrnndz/pbdood.git
+   cd pbdood
+   ```
 
-3.  **Install Additional Tools:**
-    Manually download and set up **MMseqs2**, **FAMSA**, and **FastTree**. Consult their respective websites for installation instructions.
+3. **Install all dependencies:**
+   ```bash
+   bash install.sh
+   conda activate pbdood
+   ```
+   This creates the `pbdood` conda environment with every tool and fetches OG_Delineation (pinned) into `external/`.
+
+4. **Download the data bundle:**
+   Download the `data` folder from the link below and place it in the repository root (next to `DOOD.nf`):
+   `https://saco.csic.es/s/xjzGL86Cj2x2WJs`
+
+   > **Expected project structure:**
+   > ```
+   > pbdood/
+   >     ├── DOOD.nf
+   >     ├── nextflow.config
+   >     ├── bin/
+   >     ├── external/            # OG_Delineation (added by install.sh)
+   >     └── data/                # downloaded data bundle
+   >         ├── pfam/
+   >         ├── ete_taxonomy/
+   >         └── Dickeya.fa
+   > ```
+
+### Alternative: container
+
+An Apptainer definition file is provided in [`apptainer/`](apptainer/) to build an image with all dependencies. The `docker` and `apptainer` profiles in `nextflow.config` are ready to point at a published image.
 
 ---
 
-##  Input Files
+## 📥 Input Files
 
-DOOD requires a main FASTA file and optional reference files.
-
-* **Proteome FASTA File (Required):**
-    A single FASTA file containing all proteome sequences.
-    * **Naming Convention:** Sequence headers must follow the format `ncbi_taxid.sequence_name` (Example: `9606.NP_000001.1`). The species delimiter (`.`) can be changed in the config file.
-
-* **Optional Reference Files:**
-    * **Pfam Database:** The pipeline is configured to use Pfam v35. You can replace the files in `data/pfam/` if you wish to use a different version.
-    * **NCBI Taxonomy Database:** A specific version is provided in `data/ete_taxonomy/`. You can update it if needed.
+* **Proteome FASTA file (required):** a single FASTA with all proteome sequences.
+  * **Header convention:** `ncbi_taxid.sequence_name` (e.g. `9606.NP_000001.1`). The species delimiter (`.`) can be changed with `--ogd_sp_delimitator`.
+* **Reference databases (required):**
+  * **Pfam database** (`Pfam-A.hmm`, v35 by default) — provided in the data bundle under `data/pfam/`.
+  * **NCBI taxonomy database** (`e6.taxa.sqlite`) — provided under `data/ete_taxonomy/`.
 
 ---
 
-##  Execution Parameters
+## ▶️ How to Run
 
-Key parameters are managed via a configuration file (e.g., `local.config`). You can adjust these values to adapt the pipeline to your working environment.
+Parameters can be set on the command line (`--param value`) or in the config files. Defaults live in `nextflow.config`; `conf/local.config` and `conf/slurm.config` define the executor and resources.
 
-| Parameter | Default Value (Example) | Description |
+### Local execution
+
+* **Full pipeline:**
+  ```bash
+  nextflow run . -profile local \
+      --input data/Dickeya.fa \
+      --pfam_db data/pfam/Pfam-A.hmm \
+      --pfam_datadir data \
+      --ogd_taxonomy_db data/ete_taxonomy/e6.taxa.sqlite \
+      -with-trace -resume
+  ```
+
+* **Quick smoke test** (uses the bundled `data/Dickeya.fa`; fill in the DB paths in `conf/test.config` first):
+  ```bash
+  nextflow run . -profile test,local -resume
+  ```
+
+* **Re-run only specific stages** with `-entry`:
+  ```bash
+  nextflow run . -profile local -entry ogd_rerun -resume
+  nextflow run . -profile local -entry summary_only -resume
+  ```
+
+* **Run the tree visualisation (smartview):**
+  ```bash
+  nextflow run . -profile local -entry run_smartview --input_tree path_to_ogd_treefile.nw
+  ```
+
+### Cluster execution (SLURM)
+
+Use the `slurm` profile (adjust queue names in `conf/slurm.config` to match your cluster):
+```bash
+nextflow run . -profile slurm \
+    --input <fasta> --pfam_db <hmm> --pfam_datadir <dir> --ogd_taxonomy_db <sqlite> \
+    -with-trace -resume
+```
+
+---
+
+## 🔧 Key Parameters
+
+| Parameter | Default | Description |
 | :--- | :--- | :--- |
-| **`input`** | `/data/proj/.../Dickeya.fa` | Full path to the input FASTA file. |
-| **`general_output`** | `/data/proj/.../test_cpo_local` | Directory where all results will be saved. |
-| **`pfam_db`** | `/data/proj/.../Pfam-A.hmm` | Path to the Pfam HMM database. |
-| **`ogd_taxonomy_db`** | `/data/proj/.../e6.taxa.sqlite` | Path to the taxonomy database for OGD. |
-| **`hmmer_cpu`** | `10` | Total CPUs for HMMER. |
-| **`mmseqs_coverage`** | `0.3` | Minimum coverage for *de novo* clustering (MMseqs2). |
-| **`mmseqs_min_seq_id`** | `0.3` | Minimum sequence identity for *de novo* clustering. |
-| **`ogd_rooting`** | `"MinVar"` | Tree rooting algorithm (e.g., MinVar). |
-| **`ogd_sp_delimitator`** | `.` | Delimiter used in the FASTA header to separate the taxid (e.g., `9606.NP_000001.1`). |
-| **`ogd_sp_overlap`** | `0.1` | Species overlap threshold for duplication detection. |
+| `--input` | *(required)* | Path to the input proteome FASTA. |
+| `--pfam_db` | *(required)* | Path to the Pfam HMM database (`Pfam-A.hmm`). |
+| `--pfam_datadir` | *(required)* | `data/` folder with Pfam and eggnog-mapper resources. |
+| `--ogd_taxonomy_db` | *(required)* | Path to the NCBI taxonomy database (`e6.taxa.sqlite`). |
+| `--general_output` | `results/` | Directory where all results are saved. |
+| `--hmmer_cpu` | `6` | CPUs for HMMER / hmm_mapper. |
+| `--mmseqs_coverage` | `0.3` | Minimum coverage for *de novo* clustering (MMseqs2). |
+| `--mmseqs_min_seq_id` | `0.3` | Minimum sequence identity for *de novo* clustering. |
+| `--ogd_rooting` | `MinVar` | Tree-rooting algorithm. |
+| `--ogd_sp_delimitator` | `.` | Delimiter separating the taxid in FASTA headers. |
+| `--ogd_sp_overlap` | `0.1` | Species-overlap threshold for duplication detection. |
+| `--ogd_sp_lost` | `0.7` | Species-loss threshold. |
+
+See `nextflow.config` for the full list of parameters.
 
 ---
 
-##  How to Run PBDOOD
+## 📊 Benchmark
 
-### Local Execution
+We evaluated PBDOOD using the [Quest for Orthologs (QfO)](https://questfororthologs.org/) benchmarking service and the 2022 reference-proteomes dataset, comprising 79 proteomes from Bacteria, Eukaryota and Archaea. All tests are available in the [`benchmark/`](benchmark/) folder; here are some of the results.
 
-* **Run the entire pipeline :**
-    ```bash
-    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume
-    ```
-    *(Replace `/path/to/nextflow` with the actual path to your Nextflow executable.)*
-
-* **Re-run OGD step (using `-entry`):**
-    Useful for resuming execution from a checkpoint, for example, restarting only Orthology Delineation (OGD):
-    ```bash
-    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume -resume -entry ogd_rerun
-    bash /path/to/nextflow run DOOD.nf -c local.config -with-trace -resume -resume -entry summary_only
-    ```
-
-* **Run smartview (using `-entry`):**
-    ```bash
-    bash /path/to/nextflow run subworkflows/DOOD.nf --input_tree path_to_ogd_treefile.nw -entry run_smartview
-    ```
-
-
----
-## Benchmarck
-
-We evaluated our PBDOOD pipeline using the Quest for Orthologs (QfO) benchmarking tool and the 2022 reference proteomes dataset. This dataset comprises 79 proteomes from species belonging to the domains Bacteria, Eukaryota and Archaea. You can find all the tests in the benchmark folder; here are some of the results.
-
-![test1](benchmark/dood_swisstrees.png "Swisstrees test")
-![test2](benchmark/dood_ec.png "EC test") 
-![test3](benchmark/dood_std_luca_ncomptrees_rfdist.png "LUCA Generalized Species test") 
-
+![SwissTrees test](benchmark/dood_swisstrees.png "SwissTrees test")
+![EC test](benchmark/dood_ec.png "EC test")
+![LUCA Generalized Species Tree test](benchmark/dood_std_luca_ncomptrees_rfdist.png "LUCA Generalized Species Tree test")
