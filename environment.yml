@@ -7,40 +7,40 @@
 # Recommended: enable strict channel priority before creating the environment:
 #     conda config --set channel_priority strict
 #
-# NOTE on versions: the original Apptainer .def used "latest" binaries (mmseqs)
-# and HMMER 3.1b2. Stable Bioconda versions are pinned here for reproducibility.
-# If your benchmark results were produced with specific versions, replace these
-# with those exact versions for an identical environment.
+# NOTE on versions: stable versions are pinned here for reproducibility. If your
+# benchmark results were produced with specific versions of mmseqs2/famsa/etc.,
+# replace these with those exact versions for an identical environment.
 
 name: pbdood
 
 channels:
   - conda-forge
   - bioconda
+  - nodefaults
 
 dependencies:
   - python=3.10
 
-  # --- Clustering / domain search ---
-  - bioconda::eggnog-mapper=2.1.13   # provides hmm_mapper.py / emapper.py
-  - bioconda::hmmer=3.4              # hmmpgmd for hmm_mapper's --usemem mode
-  - bioconda::mmseqs2=15.6f452       # de novo clustering (UnkFams)
+  # --- De novo clustering (standalone `mmseqs` command used by DOOD.nf) ---
+  - mmseqs2=15.6f452
 
   # --- Phylogenomics (MSA + trees) ---
-  - bioconda::famsa=2.4.1
-  - bioconda::mafft=7.526
-  - bioconda::fasttree=2.1.11
+  - famsa=2.4.1
+  - mafft=7.526
+  - fasttree=2.1.11
 
-  # --- Dependencies needed to build and run ete4 / FastRoot ---
-  - conda-forge::numpy<1.25          # ete4 4.3.x requires numpy<1.25
-  - conda-forge::scipy
-  - conda-forge::cvxopt              # MinVar rooting in FastRoot
-  - conda-forge::pandas
-  - conda-forge::cython              # ete4 build
-  - conda-forge::cxx-compiler        # ete4 build
-  - conda-forge::pip
+  # --- Build/runtime libs for the pip packages below ---
+  - numpy
+  - scipy
+  - cvxopt              # MinVar rooting in FastRoot
+  - pandas
+  - cython              # ete4 build (fallback if no wheel)
+  - cxx-compiler        # ete4 build (fallback if no wheel)
+  - pip
 
-  # --- Packages only available via pip (aligned with OG_Delineation) ---
+  # --- Pure-Python / self-contained tools installed via pip ---
   - pip:
-      - ete4==4.3.0
+      - og-delineation @ git+https://github.com/AnaHrnndz/OG_Delineation.git@v0.4.0
+      - eggnog-mapper==2.1.13
+      - ete4==4.4.0
       - FastRoot==1.5

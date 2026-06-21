@@ -2,17 +2,17 @@
 
 
     
-bin_path = "${baseDir}/bin/"
-viz_path = "${baseDir}/dood_viz/"
+//bin_path = "${baseDir}/bin/"
+//viz_path = "${baseDir}/dood_viz/"
     
 
 
 // Reutilizamos árboles, anotaciones y mappings desde archivos existentes
-ch_pfam_trees    = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
-ch_mmseqs_trees  = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
-ch_annotations   = Channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
-ch_seq2pfam      = Channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
-ch_input_seqs    = Channel.fromPath(params.input)
+//ch_pfam_trees    = channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
+//ch_mmseqs_trees  = channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
+//ch_annotations   = channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
+//ch_seq2pfam      = channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
+//ch_input_seqs    = channel.fromPath(params.input)
 
 
 process create_output {
@@ -64,7 +64,7 @@ process pfam_clustering {
     """
     hmm_mapper.py  --cut_ga --clean_overlaps clans --usemem \
         --num_servers ${params.hmmer_num_servers} --num_workers ${params.hmmer_num_workers} --cpu ${params.hmmer_cpu} \
-        --dbtype hmmdb  --data_dir ${params.pfam_datadir} -d ${params.pfam_db} \
+        --dbtype hmmdb  --data_dir ${params.pfam_datadir} -d ${params.pfam_datadir}/pfam/Pfam-A.hmm \
         --hmm_maxhits 0 --hmm_maxseqlen 60000 \
         --qtype seq -i ${fasta_file} -o result_hmm_mapper  
     """
@@ -78,9 +78,7 @@ process get_pfam_fastas {
     tag { pfam_table }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
@@ -111,7 +109,7 @@ process get_pfam_fastas {
     
     script:
     """
-    python ${bin_path}pfam_fastas.py ${pfam_table} ${fasta_file}
+    python ${projectDir}/bin/pfam_fastas.py ${pfam_table} ${fasta_file}
     """
     
 }
@@ -123,9 +121,7 @@ process mmseqs_clustering {
     tag { seqs_no_pfam }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
@@ -160,7 +156,7 @@ process mmseqs_clustering {
        
     mmseqs createtsv ${mmseqs_db} ${mmseqs_db} ${mmseqs_clustering} ${mmseqs_tsv}
 
-    python ${bin_path}rename_mmseqs_fams.py ${mmseqs_tsv} ${params.general_output}/clustering/
+    python ${projectDir}/bin/rename_mmseqs_fams.py ${mmseqs_tsv} ${params.general_output}/clustering/
         
     """
 }
@@ -173,9 +169,7 @@ process get_mmseqs_fastas {
     tag { mmseqs_mems }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
     maxRetries 2
@@ -199,7 +193,7 @@ process get_mmseqs_fastas {
 
     script:
     """
-    python ${bin_path}mmseqs_fastas.py ${mmseqs_mems} ${seqs_no_pfam}
+    python ${projectDir}/bin/mmseqs_fastas.py ${mmseqs_mems} ${seqs_no_pfam}
     """
 }
 
@@ -213,9 +207,7 @@ process align_pfam {
 
     memory { params.memory * task.attempt }
     
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -261,9 +253,7 @@ process align_mmseqs {
     tag { raw_mmseqs_fasta }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -310,9 +300,7 @@ process trimming_pfam {
     tag { pfam_aln }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -336,7 +324,7 @@ process trimming_pfam {
     script:
     fasta_name = pfam_aln.baseName
     """
-    python ${bin_path}trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    python ${projectDir}/bin/trim_alg_v2.py -i ${pfam_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
@@ -348,9 +336,7 @@ process trimming_mmseqs{
     tag { mmseqs_aln }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -374,7 +360,7 @@ process trimming_mmseqs{
     script:
     fasta_name = mmseqs_aln.baseName
     """
-    python ${bin_path}trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
+    python ${projectDir}/bin/trim_alg_v2.py -i ${mmseqs_aln} --min_res_abs 3 --min_res_percent 0.1 -o ${fasta_name}.trim
     """
 
 }
@@ -386,9 +372,7 @@ process tree_pfam {
     tag { pfam_trim }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -430,9 +414,7 @@ process tree_mmseqs {
     tag { mmseqs_trim }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -473,9 +455,8 @@ process ogd_pfam {
     tag { pfam_nw }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
+
     errorStrategy {
     if (task.exitStatus in 137..140) {
         // Exponential backoff strategy: delay increases with each retry
@@ -507,7 +488,7 @@ process ogd_pfam {
 
     mkdir -p orthology/${fasta_name}/
     
-    og_delineation.py --tree ${pfam_nw} --output_path ./ \
+    og-delineation --tree ${pfam_nw} --output_path ./ \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -524,9 +505,7 @@ process ogd_mmseqs {
     tag { mmseqs_nw }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -558,7 +537,7 @@ process ogd_mmseqs {
     # mkdir -p ${params.general_output}/orthology/${fasta_name}/
 
     mkdir -p orthology/${fasta_name}/
-    og_delineation.py --tree ${mmseqs_nw} --output_path ./  \
+    og-delineation --tree ${mmseqs_nw} --output_path ./  \
         --rooting ${params.ogd_rooting} --user_taxonomy ${params.ogd_taxonomy_db} --sp_delimitator  ${params.ogd_sp_delimitator} \
         --sp_ovlap_all ${params.ogd_sp_overlap} --species_losses_perct ${params.ogd_sp_lost} 
 
@@ -573,9 +552,7 @@ process emapper {
     label 'medium'
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -614,9 +591,7 @@ process add_func_annot_pfam {
     tag { pfam_ogd_tree }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -644,7 +619,7 @@ process add_func_annot_pfam {
 
     script:
     """
-    python ${bin_path}add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${pfam_ogd_tree}
+    python ${projectDir}/bin/add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${pfam_ogd_tree}
     """
 
 }
@@ -657,9 +632,7 @@ process add_func_annot_mmseqs {
     tag { mmseqs_ogd_tree }
 
     memory { params.memory * task.attempt }
-    if (params.time) {
-        time { params.time * task.attempt }
-    }
+    time { params.time ? params.time * task.attempt : null }
 
     errorStrategy {
     if (task.exitStatus in 137..140) {
@@ -684,7 +657,7 @@ process add_func_annot_mmseqs {
 
     script:
     """
-    python ${bin_path}add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${mmseqs_ogd_tree}
+    python ${projectDir}/bin/add_annotations.py ${seq2dom_arq} ${pfam_table_annotation} ${mmseqs_ogd_tree}
     """
 
 }
@@ -710,7 +683,7 @@ process run_summary {
 
     script:
     """ 
-    python ${bin_path}summary.py ${fasta_file} ${params.general_output}/orthology ${params.general_output}/clustering ${params.ogd_sp_delimitator} ${params.ogd_taxonomy_db}
+    python ${projectDir}/bin/summary.py ${fasta_file} ${params.general_output}/orthology ${params.general_output}/clustering ${params.ogd_sp_delimitator} ${params.ogd_taxonomy_db}
     """
 }
 
@@ -721,12 +694,11 @@ process run_ogd_smartview {
     input:
     path input_tree
 
-    output:
 
 
     script:
     """
-    og_delineation.py --tree ${input_tree} --output_path ./  --only_visualization
+    og-delineation --tree ${input_tree} --output_path ./  --only_visualization
         
     """
 }
@@ -735,7 +707,7 @@ process run_ogd_smartview {
 workflow {
 
     create_output()
-    fasta_file = Channel.fromPath(params.input)
+    fasta_file = channel.fromPath(params.input)
     
 
     // CLUSTERING //
@@ -772,13 +744,16 @@ workflow {
     run_summary(sync_channel, fasta_file)
 
     // ANNOTATION //
-    emapper(fasta_file)
-    
-    ogd_pfam.out.pfam_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { pfam_trees_to_annotate_channel }
-    add_func_annot_pfam(pfam_trees_to_annotate_channel)
 
-    ogd_mmseqs.out.mmseqs_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { mmseqs_trees_to_annotate_channel }   
-    add_func_annot_mmseqs(mmseqs_trees_to_annotate_channel)
+    if (params.emapper_dir) {
+        emapper(fasta_file)
+
+        ogd_pfam.out.pfam_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { pfam_trees_to_annotate_channel }
+        add_func_annot_pfam(pfam_trees_to_annotate_channel)
+
+        ogd_mmseqs.out.mmseqs_ogd_tree.combine(emapper.out.pfam_table_annotation).combine(get_pfam_fastas.out.seq2dom_arq).set { mmseqs_trees_to_annotate_channel }   
+        add_func_annot_mmseqs(mmseqs_trees_to_annotate_channel)
+    }
 
 
 }
@@ -786,7 +761,7 @@ workflow {
 
 workflow run_smartview {
 
-    input_tree = Channel.fromPath(params.input_tree)
+    input_tree = channel.fromPath(params.input_tree)
     run_ogd_smartview(input_tree)
 
 
@@ -797,11 +772,11 @@ workflow run_smartview {
 workflow ogd_rerun {
     
     
-    ch_pfam_trees    = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
-    ch_mmseqs_trees  = Channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
-    ch_annotations   = Channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
-    ch_seq2pfam      = Channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
-    ch_input_seqs    = Channel.fromPath(params.input)
+    ch_pfam_trees    = channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
+    ch_mmseqs_trees  = channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
+    ch_annotations   = channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
+    ch_seq2pfam      = channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
+    ch_input_seqs    = channel.fromPath(params.input)
 
    
     ogd_pfam(ch_pfam_trees)
@@ -827,13 +802,13 @@ workflow ogd_rerun {
 workflow summary_only {
     
     
-    ch_existing_pfam_ogd   = Channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
-                                    .filter { it.name.contains('pfam') } 
+    ch_existing_pfam_ogd   = channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
+                                    .filter { f -> f.name.contains('pfam') } 
                                     
-    ch_existing_mmseqs_ogd = Channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
-                                    .filter { it.name.contains('mmseqs') }
+    ch_existing_mmseqs_ogd = channel.fromPath("${params.general_output}/orthology/**/*.tree_annot.nw")
+                                    .filter { f -> f.name.contains('mmseqs') }
 
-    ch_input_seqs          = Channel.fromPath(params.input)
+    ch_input_seqs          = channel.fromPath(params.input)
 
     
     SUB_RUN_SUMMARY(

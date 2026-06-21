@@ -39,7 +39,7 @@ This algorithm analyses the trees to detect duplications and define OGs. Key ste
 PBDOOD requires:
 
 * **Nextflow** (≥ 23.04) as the workflow manager.
-* **conda** or **mamba** to install the rest of the dependencies (recommended), or a container engine (Docker/Apptainer).
+* **conda** or **mamba** to install all the dependencies.
 
 All bioinformatics tools are installed automatically through the provided `environment.yml`:
 
@@ -49,13 +49,11 @@ All bioinformatics tools are installed automatically through the provided `envir
 | **Phylogenomics** | `FAMSA`, `MAFFT`, `FastTree` |
 | **Orthology** | `ETE4`, `FastRoot` |
 
-> The orthology step relies on **OG_Delineation** (`og_delineation.py`), which is not distributed via conda/pip. The `install.sh` script fetches it automatically, pinned to a specific commit, into `external/`.
+> The orthology step relies on **OG_Delineation** (pinned to release `v0.4.0`), which is installed via pip directly from the `environment.yml`, exposing the `og-delineation` command.
 
 ---
 
 ## 💻 Installation
-
-### Recommended: conda
 
 1. **Install Nextflow** (requires Java 11+):
    ```bash
@@ -71,12 +69,12 @@ All bioinformatics tools are installed automatically through the provided `envir
    cd pbdood
    ```
 
-3. **Install all dependencies:**
+3. **Create the environment with all dependencies:**
    ```bash
-   bash install.sh
+   conda env create -f environment.yml   # or: mamba env create -f environment.yml
    conda activate pbdood
    ```
-   This creates the `pbdood` conda environment with every tool and fetches OG_Delineation (pinned) into `external/`.
+   This installs every tool, including OG_Delineation (`og-delineation`) via pip.
 
 4. **Download the data bundle:**
    Download the `data` folder from the link below and place it in the repository root (next to `DOOD.nf`):
@@ -88,16 +86,11 @@ All bioinformatics tools are installed automatically through the provided `envir
    >     ├── DOOD.nf
    >     ├── nextflow.config
    >     ├── bin/
-   >     ├── external/            # OG_Delineation (added by install.sh)
    >     └── data/                # downloaded data bundle
    >         ├── pfam/
    >         ├── ete_taxonomy/
    >         └── Dickeya.fa
    > ```
-
-### Alternative: container
-
-An Apptainer definition file is provided in [`apptainer/`](apptainer/) to build an image with all dependencies. The `docker` and `apptainer` profiles in `nextflow.config` are ready to point at a published image.
 
 ---
 
@@ -105,9 +98,10 @@ An Apptainer definition file is provided in [`apptainer/`](apptainer/) to build 
 
 * **Proteome FASTA file (required):** a single FASTA with all proteome sequences.
   * **Header convention:** `ncbi_taxid.sequence_name` (e.g. `9606.NP_000001.1`). The species delimiter (`.`) can be changed with `--ogd_sp_delimitator`.
-* **Reference databases (required):**
-  * **Pfam database** (`Pfam-A.hmm`, v35 by default) — provided in the data bundle under `data/pfam/`.
-  * **NCBI taxonomy database** (`e6.taxa.sqlite`) — provided under `data/ete_taxonomy/`.
+* **Reference databases:**
+  * **Pfam database** (`Pfam-A.hmm`, v35 by default) — read from `<pfam_datadir>/pfam/`, so you only pass `--pfam_datadir`.
+  * **NCBI taxonomy database** (`e6.taxa.sqlite`) — under `data/ete_taxonomy/`, passed via `--ogd_taxonomy_db`.
+  * **eggnog-mapper data dir** (optional) — only needed for functional annotation; pass via `--emapper_dir`. This database is large; if you don't provide it, the annotation step is simply skipped.
 
 ---
 
@@ -115,13 +109,21 @@ An Apptainer definition file is provided in [`apptainer/`](apptainer/) to build 
 
 Parameters can be set on the command line (`--param value`) or in the config files. Defaults live in `nextflow.config`; `conf/local.config` and `conf/slurm.config` define the executor and resources.
 
+### Configuration profiles
+
+Profiles are switched on with `-profile` and combined with commas (no spaces):
+
+* **Execution environment** (pick one): `local` (your own machine) or `slurm` (HPC cluster).
+* **Optional**: `test`, to run the bundled example dataset with reduced resources.
+
+For example: `-profile local` for a normal local run, `-profile slurm` on a cluster, or `-profile local,test` for a quick local smoke test. If two profiles set the same option, the one listed **last** wins.
+
 ### Local execution
 
 * **Full pipeline:**
   ```bash
   nextflow run . -profile local \
       --input data/Dickeya.fa \
-      --pfam_db data/pfam/Pfam-A.hmm \
       --pfam_datadir data \
       --ogd_taxonomy_db data/ete_taxonomy/e6.taxa.sqlite \
       -with-trace -resume
@@ -129,7 +131,7 @@ Parameters can be set on the command line (`--param value`) or in the config fil
 
 * **Quick smoke test** (uses the bundled `data/Dickeya.fa`; fill in the DB paths in `conf/test.config` first):
   ```bash
-  nextflow run . -profile test,local -resume
+  nextflow run . -profile local,test -resume
   ```
 
 * **Re-run only specific stages** with `-entry`:
@@ -148,7 +150,7 @@ Parameters can be set on the command line (`--param value`) or in the config fil
 Use the `slurm` profile (adjust queue names in `conf/slurm.config` to match your cluster):
 ```bash
 nextflow run . -profile slurm \
-    --input <fasta> --pfam_db <hmm> --pfam_datadir <dir> --ogd_taxonomy_db <sqlite> \
+    --input <fasta> --pfam_datadir <dir> --ogd_taxonomy_db <sqlite> \
     -with-trace -resume
 ```
 
@@ -159,9 +161,9 @@ nextflow run . -profile slurm \
 | Parameter | Default | Description |
 | :--- | :--- | :--- |
 | `--input` | *(required)* | Path to the input proteome FASTA. |
-| `--pfam_db` | *(required)* | Path to the Pfam HMM database (`Pfam-A.hmm`). |
-| `--pfam_datadir` | *(required)* | `data/` folder with Pfam and eggnog-mapper resources. |
+| `--pfam_datadir` | *(required)* | Path to the `data/` folder. The Pfam HMM database is read from `<pfam_datadir>/pfam/Pfam-A.hmm`. |
 | `--ogd_taxonomy_db` | *(required)* | Path to the NCBI taxonomy database (`e6.taxa.sqlite`). |
+| `--emapper_dir` | *(optional)* | eggnog-mapper data dir. If omitted, the functional-annotation step is skipped. |
 | `--general_output` | `results/` | Directory where all results are saved. |
 | `--hmmer_cpu` | `6` | CPUs for HMMER / hmm_mapper. |
 | `--mmseqs_coverage` | `0.3` | Minimum coverage for *de novo* clustering (MMseqs2). |

@@ -5,9 +5,6 @@ work/
 results/
 results_test/
 
-# External dependency placed by install.sh (do not version)
-external/
-
 # Python
 __pycache__/
 *.py[cod]

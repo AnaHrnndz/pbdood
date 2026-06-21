@@ -19,22 +19,26 @@ def get_total_num_seqs_pure_python(fasta_file):
                     count += 1
         return count
     except FileNotFoundError:
-        print(f"Error: El archivo '{fasta_file}' no se encontró.")
+        print(f"Error: file '{fasta_file}' not found.")
         return 0
 
 
-def get_ogs_info(list_ogs, output_dir, ncbi):
-        
-    
-    
+def get_ogs_info(list_ogs, output_dir, ncbi, sp_delimiter):
 
-    
+    # NOTE: this parser assumes a fixed column layout in the *.ogs_info.tsv
+    # produced by og_delineation:
+    #   info[0]  -> OG name (e.g. "...@taxid|...")
+    #   info[1]  -> LCA duplication ('-' if none)
+    #   info[14] -> comma-separated list of sequence names in the OG
+    # OG_Delineation was refactored (>= v0.4.0); if its output format changed,
+    # verify these indices still match before trusting the summary.
+
     total_ogs = list()
     seqs_in_ogs = set()
     ogs_order_by_tax = defaultdict()
-    dups_by_tax =  defaultdict(int)
+    dups_by_tax = defaultdict(int)
     single_copy = set()
-    
+
     for path2og in list_ogs:
         with open(path2og) as fin:
             for line in fin:
@@ -50,20 +54,23 @@ def get_ogs_info(list_ogs, output_dir, ncbi):
                 total_ogs.append(info)
 
                 tax = ogname.split('@')[1].split('|')[0]
-                sp_set = set([s.split('.')[0] for s in info[14].split(',')])
+                seqs = info[14].split(',')
+                sp_set = set([s.split(sp_delimiter)[0] for s in seqs])
 
                 if info[1] != '-':
                     lca_dup = info[1]
                     dups_by_tax[lca_dup] += 1
-                
-                seqs_in_ogs.update(set(info[14].split(',')))
 
-                if len(sp_set) == len(info[14].split(',')):
+                seqs_in_ogs.update(set(seqs))
+
+                if len(sp_set) == len(seqs):
                     single_copy.add(ogname)
 
                 lin_set = set()
                 for sp in sp_set:
-                    lin_set.update(set(ncbi.get_lineage(sp)))
+                    lineage = ncbi.get_lineage(sp)
+                    if lineage:
+                        lin_set.update(lineage)
 
                 for l in lin_set:
                     if l not in ogs_order_by_tax.keys():
@@ -71,26 +78,21 @@ def get_ogs_info(list_ogs, output_dir, ncbi):
 
                     ogs_order_by_tax[l][tax].append(ogname)
 
-                
-    
-    
     return total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy
-                
+
 
 def get_pairs_info(list_pairs, small_fams, sp_delimiter):
 
-    
     sp_vs_sp_counts = defaultdict(lambda: defaultdict(int))
     processed_pairs = set()
     all_species = set()
     total_pairs = set()
-    
 
     for path2pairs in list_pairs:
         name = os.path.basename(path2pairs).replace('.strict_pairs.tsv', '')
         with open(path2pairs) as fin:
             for line in fin:
-                info = line.strip().split('\t')           
+                info = line.strip().split('\t')
 
                 sp1 = info[0].split(sp_delimiter)[0]
                 sp2 = info[1].split(sp_delimiter)[0]
@@ -100,27 +102,26 @@ def get_pairs_info(list_pairs, small_fams, sp_delimiter):
 
                 unique_pair = tuple(sorted((info[0], info[1])))
 
-                
                 if unique_pair not in processed_pairs:
-                    
+
                     all_species.add(sp1)
                     all_species.add(sp2)
 
-                    
                     processed_pairs.add(unique_pair)
                     info.append(name)
                     total_pairs.add(tuple(info))
                     sp_vs_sp_counts[sp1][sp2] += 1
                     sp_vs_sp_counts[sp2][sp1] += 1
 
-
     for path2small_fam in small_fams:
         with open(path2small_fam) as fin:
             for line in fin:
                 famname, pairs = line.strip().split('\t')
-                p1,p2 = pairs.split(',')
-                sp1, seqname1 = p1.split(sp_delimiter)
-                sp2, seqname = p2.split(sp_delimiter)
+                p1, p2 = pairs.split(',')
+                # Split only on the first delimiter: sequence names may contain
+                # the delimiter (e.g. accession.version like NP_000001.1).
+                sp1 = p1.split(sp_delimiter, 1)[0]
+                sp2 = p2.split(sp_delimiter, 1)[0]
 
                 if sp1 == sp2:
                     continue
@@ -139,7 +140,7 @@ def get_pairs_info(list_pairs, small_fams, sp_delimiter):
 
     species_list = sorted(list(all_species))
     matrix_data = np.zeros((len(species_list), len(species_list)))
-    
+
     for i, sp1 in enumerate(species_list):
         for j, sp2 in enumerate(species_list):
             if sp1 != sp2:
@@ -158,10 +159,10 @@ def writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by
     ogs_ordered_outfile = open(output_dir+'ogs_ordered_by_taxid.tsv', 'w')
     dups_counter_outfile = open(output_dir+'dups_counter.tsv', 'w')
     total_ogs_outfile = open(output_dir+'total_ogs.tsv', 'w')
-    total_pairs_outfile = open(output_dir+'total_pairs.tsv', 'w') 
+    total_pairs_outfile = open(output_dir+'total_pairs.tsv', 'w')
 
     summary_df.to_csv(summary_outfile, sep='\t', index=True, header=True)
-    print(f"Tabla de resumen guardada en '{summary_outfile}'")
+    print(f"Summary table saved to '{summary_outfile}'")
 
     single_copy_outfile.write('\n'.join(single_copy))
 
@@ -171,10 +172,10 @@ def writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by
     for tax, ogs_ordered in ogs_order_by_tax.items():
         data = {
             "taxid": tax,
-            "ogs": ogs_ordered 
+            "ogs": ogs_ordered
         }
         ogs_ordered_outfile.write(json.dumps(data) + '\n')
-    
+
     for tax, count in dups_by_tax.items():
         dups_counter_outfile.write('\t'.join([str(tax), str(count)+'\n']))
 
@@ -204,7 +205,7 @@ output_dir = os.getcwd()+'/'
 all_ogs = glob.glob(orthology_dir+'/*/'+'*.ogs_info.tsv')
 
 all_seqs2ogs = glob.glob(orthology_dir+'/*/'+'*.seq2ogs.tsv')
-all_pairs =  glob.glob(orthology_dir+'/*/'+'*.strict_pairs.tsv')
+all_pairs = glob.glob(orthology_dir+'/*/'+'*.strict_pairs.tsv')
 small_fams = glob.glob(clustering_dir+'/'+'*_small_fams.tsv')
 
 
@@ -212,9 +213,8 @@ sp_delimiter = sys.argv[4]
 
 ncbi = NCBITaxa(sys.argv[5])
 
-total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy = get_ogs_info(all_ogs, output_dir, ncbi)
+total_ogs, seqs_in_ogs, ogs_order_by_tax, dups_by_tax, single_copy = get_ogs_info(all_ogs, output_dir, ncbi, sp_delimiter)
 
 summary_df, total_pairs = get_pairs_info(all_pairs, small_fams, sp_delimiter)
 
 writing_outputs(output_dir, summary_df, total_pairs, total_ogs, ogs_order_by_tax, dups_by_tax, single_copy)
-
