@@ -107,7 +107,7 @@ All bioinformatics tools are installed automatically through the provided `envir
 
 ## ▶️ How to Run
 
-Parameters can be set on the command line (`--param value`) or in the config files. Defaults live in `nextflow.config`; `conf/local.config` and `conf/slurm.config` define the executor and resources.
+Parameters can be set on the command line (`--param value`) or in the config files, with this **precedence (highest first)**: command line → the active profile's config (e.g. `conf/test.config`) → defaults in `nextflow.config`. So a value passed with `--param` on the command line always overrides whatever the config files set. `conf/local.config` and `conf/slurm.config` define the executor and resources.
 
 ### Configuration profiles
 

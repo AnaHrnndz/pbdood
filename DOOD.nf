@@ -675,7 +675,7 @@ process run_summary {
 
     output:
     path 'sp_vs_sp.tsv', emit: sp_vs_sp
-    path 'singlecopy_genes.tsv', emit: singlecopy_genes
+    path 'singlecopy_ogs.tsv', emit: singlecopy_ogs
     path 'ogs_ordered_by_taxid.tsv', emit: ogs_ordered_by_taxid
     path 'dups_counter.tsv', emit: dups_counter
     path 'total_ogs.tsv', emit: total_ogs
