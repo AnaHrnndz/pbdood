@@ -134,16 +134,17 @@ For example: `-profile local` for a normal local run, `-profile slurm` on a clus
   nextflow run . -profile local,test -resume
   ```
 
-* **Re-run only specific stages** with `-entry`:
-  ```bash
-  nextflow run . -profile local -entry ogd_rerun -resume
-  nextflow run . -profile local -entry summary_only -resume
-  ```
+### Visualizing a tree
 
-* **Run the tree visualisation (smartview):**
-  ```bash
-  nextflow run . -profile local -entry run_smartview --input_tree path_to_ogd_treefile.nw
-  ```
+PBDOOD trees can be explored interactively with OG_Delineation's built-in viewer
+(ete4 smartview). It runs as a standalone command — no need to go through Nextflow:
+
+```bash
+conda activate pbdood
+og-delineation --tree path/to/your_tree_annot.nw --only_visualization
+```
+
+This launches an ete4 smartview server; open the address it prints in your browser. If you run it on a remote machine, forward the port first, e.g. `ssh -L <port>:localhost:<port> user@host` (use the port shown by the command).
 
 ### Cluster execution (SLURM)
 

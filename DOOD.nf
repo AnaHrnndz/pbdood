@@ -689,22 +689,8 @@ process run_summary {
 
 
 
-process run_ogd_smartview {
 
-    input:
-    path input_tree
-
-
-
-    script:
-    """
-    og-delineation --tree ${input_tree} --output_path ./  --only_visualization
-        
-    """
-}
-
-
-workflow {
+workflow PBDOOD {
 
     create_output()
     fasta_file = channel.fromPath(params.input)
@@ -759,25 +745,23 @@ workflow {
 }
 
 
-workflow run_smartview {
 
-    input_tree = channel.fromPath(params.input_tree)
-    run_ogd_smartview(input_tree)
-
-
-}
-
+// TODO: rerun modes (ogd_rerun / summary_only) are work-in-progress — not yet
+//       validated and intentionally undocumented. Pending: read previous results
+//       from a separate directory so earlier orthology output is preserved.
 
 
 workflow ogd_rerun {
     
     
+    // Read previous results from --input_dir (defaults to general_output)
+    
+
     ch_pfam_trees    = channel.fromPath("${params.general_output}/phylogenomics/trees/*.pfam.nw")
     ch_mmseqs_trees  = channel.fromPath("${params.general_output}/phylogenomics/trees/*.mmseqs.nw")
     ch_annotations   = channel.fromPath("${params.general_output}/emapper_results/result_fannot.emapper.annotations")
     ch_seq2pfam      = channel.fromPath("${params.general_output}/clustering/pfam_seq2pfam_info.tsv")
     ch_input_seqs    = channel.fromPath(params.input)
-
    
     ogd_pfam(ch_pfam_trees)
     ogd_mmseqs(ch_mmseqs_trees)
@@ -837,3 +821,8 @@ workflow SUB_RUN_SUMMARY {
         run_summary(sync_channel, fasta_input)
 }
 
+workflow {
+    if      (params.entry == 'ogd_rerun')    { ogd_rerun()    }
+    else if (params.entry == 'summary_only') { summary_only() }
+    else                                     { PBDOOD()       }
+}
