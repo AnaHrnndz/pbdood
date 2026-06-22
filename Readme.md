@@ -105,6 +105,64 @@ All bioinformatics tools are installed automatically through the provided `envir
 
 ---
 
+## 💡 Tips
+
+### Database layout
+
+Place the reference databases inside the `data/` folder so the default paths line up:
+
+```
+data/
+├── pfam/
+│   └── Pfam-A.hmm            # (+ hmmpress index files: .h3f .h3i .h3m .h3p)
+├── eggnog.db                 # eggNOG-mapper annotation database
+├── eggnog_proteins.dmnd      # eggNOG-mapper DIAMOND database
+└── ete_taxonomy/
+    └── e6.taxa.sqlite        # NCBI taxonomy for OGD
+```
+
+Then point each parameter at the right place:
+
+* `--pfam_datadir /path/to/data` → the Pfam HMM is read from `<pfam_datadir>/pfam/Pfam-A.hmm`.
+* `--emapper_dir /path/to/data` → the folder containing `eggnog.db` and `eggnog_proteins.dmnd` (needed only for functional annotation; omit to skip it).
+* `--ogd_taxonomy_db /path/to/data/ete_taxonomy/e6.taxa.sqlite`.
+
+### Preparing the databases
+
+**Pfam.** Download the Pfam 35.0 files from the [Pfam FTP](https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/) into `data/pfam/`:
+
+* [`Pfam-A.clans.tsv.gz`](https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/Pfam-A.clans.tsv.gz) — leave it as is (keep it gzipped).
+* [`Pfam-A.hmm.gz`](https://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam35.0/Pfam-A.hmm.gz) — decompress it and run `hmmpress` to build the HMMER index files:
+  ```bash
+  gunzip Pfam-A.hmm.gz
+  hmmpress Pfam-A.hmm
+  ```
+  `hmmpress` creates `Pfam-A.hmm.h3f`, `.h3i`, `.h3m` and `.h3p`. The `Pfam-A.hmm.idmap` is **not** produced by `hmmpress` — it is generated automatically by eggNOG-mapper's `hmm_server.py` the first time the database is loaded (on the first clustering run), so you don't need to create it manually.
+
+After this (and a first run), `data/pfam/` will contain:
+```
+Pfam-A.clans.tsv.gz
+Pfam-A.hmm
+Pfam-A.hmm.h3f
+Pfam-A.hmm.h3i
+Pfam-A.hmm.h3m
+Pfam-A.hmm.h3p
+Pfam-A.hmm.idmap      # created by hmm_server.py on the first run
+```
+
+**eggNOG-mapper** *(optional — only for functional annotation).* Follow the official download instructions in the [eggNOG-mapper wiki](https://github.com/eggnogdb/eggnog-mapper/wiki/eggNOG-mapper-v2.1.5-to-v2.1.13#setup). PBDOOD only needs the **main annotation database** (`eggnog.db`) and the **DIAMOND database** (`eggnog_proteins.dmnd`); place both directly in `data/`.
+
+**NCBI taxonomy (ete4).** OGD uses ete4's NCBI taxonomy database. ete4 downloads the NCBI taxonomy dump and builds the SQLite file automatically the first time you create an `NCBITaxa` object pointing at a given path. Build it once into `data/ete_taxonomy/`:
+
+```bash
+mkdir -p data/ete_taxonomy
+python -c "from ete4 import NCBITaxa; NCBITaxa(dbfile='data/ete_taxonomy/e6.taxa.sqlite')"
+```
+
+This needs an internet connection and may take a few minutes. Then pass the resulting file with `--ogd_taxonomy_db data/ete_taxonomy/e6.taxa.sqlite`.
+
+---
+
 ## ▶️ How to Run
 
 Parameters can be set on the command line (`--param value`) or in the config files, with this **precedence (highest first)**: command line → the active profile's config (e.g. `conf/test.config`) → defaults in `nextflow.config`. So a value passed with `--param` on the command line always overrides whatever the config files set. `conf/local.config` and `conf/slurm.config` define the executor and resources.
@@ -180,7 +238,7 @@ See `nextflow.config` for the full list of parameters.
 
 ## 📊 Benchmark
 
-We evaluated PBDOOD using the [Quest for Orthologs (QfO)](https://questfororthologs.org/) benchmarking service and the 2022 reference-proteomes dataset, comprising 79 proteomes from Bacteria, Eukaryota and Archaea. All tests are available in the [`benchmark/`](benchmark/) folder; here are some of the results.
+We evaluated PBDOOD using the [Quest for Orthologs (QfO)](https://questfororthologs.org/) benchmarking service and the 2022 reference-proteomes dataset, comprising 79 proteomes from Bacteria, Eukaryota and Archaea. All tests are available in the [`OpenEBench platform`](https://openebench.bsc.es/benchmarking/OEBC002/?event=OEBE0020000003); here are some of the results.
 
 ![SwissTrees test](benchmark/dood_swisstrees.png "SwissTrees test")
 ![EC test](benchmark/dood_ec.png "EC test")
