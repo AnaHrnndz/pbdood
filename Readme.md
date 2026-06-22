@@ -32,6 +32,8 @@ This algorithm analyses the trees to detect duplications and define OGs. Key ste
 * **Species-overlap calculation:** for each internal node, the proportion of species shared between the two child nodes relative to the total number of species in the node.
 * **Duplication detection:** identification of duplications that give rise to orthologous groups with a low rate of paralogs.
 
+> ⚠️ **Note:** the summary module (the final summary tables) is still under review — treat its output as preliminary, as it may still change.
+
 ---
 
 ## 📋 Requirements and Dependencies
@@ -199,10 +201,10 @@ PBDOOD trees can be explored interactively with OG_Delineation's built-in viewer
 
 ```bash
 conda activate pbdood
-og-delineation --tree path/to/your_tree_annot.nw --only_visualization
+og-delineation --tree path/to/your_tree_annot.nw --output_path ./ --only_visualization
 ```
 
-This launches an ete4 smartview server; open the address it prints in your browser. If you run it on a remote machine, forward the port first, e.g. `ssh -L <port>:localhost:<port> user@host` (use the port shown by the command).
+`--output_path` is required (use `./` for the current directory). This launches an ete4 smartview server; open the address it prints in your browser. If you run it on a remote machine, forward the port first, e.g. `ssh -L <port>:localhost:<port> user@host` (use the port shown by the command).
 
 ### Cluster execution (SLURM)
 
@@ -233,6 +235,49 @@ nextflow run . -profile slurm \
 | `--ogd_sp_lost` | `0.7` | Species-loss threshold. |
 
 See `nextflow.config` for the full list of parameters.
+
+---
+
+## 📂 Output
+
+All results are written under the directory set with `--general_output` (default: `results/`), with this structure:
+
+```
+results/
+├── clustering/                          # clustering tables (Pfam families + MMseqs2 de novo families)
+│   ├── result_hmm_mapper.emapper.hmm_hits   # raw Pfam / HMMER hits
+│   ├── pfam_seq2pfam.tsv                     # sequence → Pfam family
+│   ├── pfam_seq2pfam_info.tsv                # sequence → Pfam domain architecture
+│   ├── pfam.clusters_mems.tsv / pfam.clusters_size.tsv   # Pfam family membership and sizes
+│   ├── pfam_singletons.tsv / pfam_small_fams.tsv
+│   ├── mmseqs.clusters.tsv / mmseqs.clusters_mem.tsv / mmseqs.clusters_size.tsv / mmseqs.ori2code.tsv
+│   ├── mmseqs_seq2fam.tsv / mmseqs_singletons.tsv / mmseqs_small_fams.tsv
+│   └── fastas/                          # one FASTA per family: *.pfam.faa, *.mmseqs.faa
+├── phylogenomics/
+│   ├── aln/                             # multiple sequence alignments: *.pfam.aln, *.mmseqs.aln
+│   ├── trim_aln/                        # trimmed alignments: *.pfam.trim, *.mmseqs.trim
+│   └── trees/                           # gene trees (Newick): *.pfam.nw, *.mmseqs.nw
+├── orthology/
+│   └── <family>/                        # one folder per family with the OGD results:
+│       ├── *.tree_annot.nw              #   annotated gene tree (with OGs)
+│       ├── *.ogs_info.tsv               #   info for each orthologous group
+│       ├── *.seq2ogs.tsv                #   sequence → OG assignment
+│       ├── *.pairs.tsv                  #   ortholog pairs
+│       └── *.strict_pairs.tsv           #   strict ortholog pairs
+├── emapper_results/                     # (only with --emapper_dir) eggNOG-mapper functional annotation
+│   └── result_fannot.emapper.annotations
+├── annotation/
+│   └── trees/                           # (only with --emapper_dir) trees with functional annotation: *.fannot.nw
+└── summary/                             # summary tables  ⚠️ under review (see note in Pipeline Steps)
+    ├── total_ogs.tsv                    # all orthologous groups
+    ├── total_pairs.tsv                  # all ortholog pairs
+    ├── singlecopy_ogs.tsv               # single-copy OGs
+    ├── ogs_ordered_by_taxid.tsv         # OGs grouped by taxonomic level
+    ├── dups_counter.tsv                 # duplication counts
+    └── sp_vs_sp.tsv                     # species-vs-species comparison
+```
+
+The main end results are the per-family OGD output in `orthology/<family>/` (especially `*.tree_annot.nw` and `*.ogs_info.tsv`) and, when functional annotation is enabled, the annotated trees in `annotation/trees/`.
 
 ---
 
