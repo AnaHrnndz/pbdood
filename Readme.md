@@ -78,9 +78,8 @@ All bioinformatics tools are installed automatically through the provided `envir
    ```
    This installs every tool, including OG_Delineation (`og-delineation`) via pip.
 
-4. **Download the data bundle:**
-   Download the `data` folder from the link below and place it in the repository root (next to `DOOD.nf`):
-   `https://saco.csic.es/s/xjzGL86Cj2x2WJs`
+4. **Set up the reference databases:**
+   Place the Pfam, NCBI-taxonomy and (optional) eggNOG-mapper databases inside a `data/` folder in the repository root. See [Preparing the databases](#preparing-the-databases) below for how to download and prepare each one.
 
    > **Expected project structure:**
    > ```
@@ -88,7 +87,7 @@ All bioinformatics tools are installed automatically through the provided `envir
    >     ├── DOOD.nf
    >     ├── nextflow.config
    >     ├── bin/
-   >     └── data/                # downloaded data bundle
+   >     └── data/                # reference databases (see "Preparing the databases")
    >         ├── pfam/
    >         ├── ete_taxonomy/
    >         └── Dickeya.fa
