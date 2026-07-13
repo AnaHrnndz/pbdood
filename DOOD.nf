@@ -47,6 +47,34 @@ process create_output {
 }
 
 
+process check_names {
+
+    label 'fast'
+
+    tag { fasta_file }
+
+    memory { params.memory * task.attempt }
+    time { params.time ? params.time * task.attempt : null }
+
+    errorStrategy { task.exitStatus in 137..140 ? 'retry' : 'terminate' }
+    maxRetries 2
+
+    publishDir path: "${params.general_output}/", pattern: "seqname_map.tsv", mode: 'copy'
+
+    input:
+    path fasta_file
+
+    output:
+    path "checked_input.faa", emit: clean_fasta
+    path "seqname_map.tsv"
+
+    script:
+    """
+    python ${projectDir}/bin/check_names.py ${fasta_file} checked_input.faa seqname_map.tsv "${params.ogd_sp_delimitator}"
+    """
+}
+
+
 process pfam_clustering {
 
     tag { fasta_file }
@@ -693,7 +721,10 @@ process run_summary {
 workflow PBDOOD {
 
     create_output()
-    fasta_file = channel.fromPath(params.input)
+    
+    // Check & sanitize sequence names before anything else (Newick-safe IDs)
+    check_names(channel.fromPath(params.input))
+    fasta_file = check_names.out.clean_fasta
     
 
     // CLUSTERING //
