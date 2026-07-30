@@ -1,4 +1,9 @@
-# 🧬 PBDOOD: Phylogeny-based Domain-oriented Orthology Delineation
+<p align="center">
+  <img src="docs/pbdood_logo_transparent.png" alt="PBDOOD" width="400">
+</p>
+
+
+# Phylogeny-based Domain-oriented Orthology Delineation
 
 **PBDOOD** is a bioinformatics pipeline designed to identify **Orthologous Groups (OGs)** across multiple proteomes. It uses the **Nextflow** framework to automate a multi-step process: initial protein clustering based on Pfam domains, phylogenetic tree building, and a final orthology analysis to define OGs.
 
