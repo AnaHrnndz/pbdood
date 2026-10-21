@@ -162,10 +162,10 @@ Pfam-A.hmm.idmap      # created by hmm_server.py on the first run
 
 ```bash
 mkdir -p data/ete_taxonomy
-python -c "from ete4 import NCBITaxa; NCBITaxa(dbfile='data/ete_taxonomy/e6.taxa.sqlite')"
+python -c "from ete4 import NCBITaxa; NCBITaxa(dbfile='data/ete_taxonomy/pbdood.taxa.sqlite')"
 ```
 
-This needs an internet connection and may take a few minutes. Then pass the resulting file with `--ogd_taxonomy_db data/ete_taxonomy/e6.taxa.sqlite`.
+This needs an internet connection and may take a few minutes. Then pass the resulting file with `--ogd_taxonomy_db data/ete_taxonomy/pbdood.taxa.sqlite`.
 
 ---
 
@@ -188,8 +188,8 @@ For example: `-profile local` for a normal local run, `-profile slurm` on a clus
   ```bash
   nextflow run . -profile local \
       --input data/Dickeya.fa \
-      --pfam_datadir data \
-      --ogd_taxonomy_db data/ete_taxonomy/e6.taxa.sqlite \
+      --pfam_datadir /path2datafolder \
+      --ogd_taxonomy_db data/ete_taxonomy/pbdood.taxa.sqlite \
       -with-trace -resume
   ```
 
@@ -227,7 +227,7 @@ nextflow run . -profile slurm \
 | :--- | :--- | :--- |
 | `--input` | *(required)* | Path to the input proteome FASTA. |
 | `--pfam_datadir` | *(required)* | Path to the `data/` folder. The Pfam HMM database is read from `<pfam_datadir>/pfam/Pfam-A.hmm`. |
-| `--ogd_taxonomy_db` | *(required)* | Path to the NCBI taxonomy database (`e6.taxa.sqlite`). |
+| `--ogd_taxonomy_db` | *(required)* | Path to the NCBI taxonomy database (`pbdood.taxa.sqlite`). |
 | `--emapper_dir` | *(optional)* | eggnog-mapper data dir. If omitted, the functional-annotation step is skipped. |
 | `--general_output` | `results/` | Directory where all results are saved. |
 | `--hmmer_cpu` | `6` | CPUs for HMMER / hmm_mapper. |
