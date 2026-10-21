@@ -106,7 +106,7 @@ All bioinformatics tools are installed automatically through the provided `envir
   * **Header convention:** `ncbi_taxid.sequence_name` (e.g. `9606.NP_000001.1`). The species delimiter (`.`) can be changed with `--ogd_sp_delimitator`.
 * **Reference databases:**
   * **Pfam database** (`Pfam-A.hmm`, v35 by default) — read from `<pfam_datadir>/pfam/`, so you only pass `--pfam_datadir`.
-  * **NCBI taxonomy database** (`e6.taxa.sqlite`) — under `data/ete_taxonomy/`, passed via `--ogd_taxonomy_db`.
+  * **NCBI taxonomy database** (`pbdood.taxa.sqlite`) — under `data/ete_taxonomy/`, passed via `--ogd_taxonomy_db`.
   * **eggnog-mapper data dir** (optional) — only needed for functional annotation; pass via `--emapper_dir`. This database is large; if you don't provide it, the annotation step is simply skipped.
 
 ---
@@ -124,14 +124,14 @@ data/
 ├── eggnog.db                 # eggNOG-mapper annotation database
 ├── eggnog_proteins.dmnd      # eggNOG-mapper DIAMOND database
 └── ete_taxonomy/
-    └── e6.taxa.sqlite        # NCBI taxonomy for OGD
+    └── pbdood.taxa.sqlite        # NCBI taxonomy for OGD
 ```
 
 Then point each parameter at the right place:
 
 * `--pfam_datadir /path/to/data` → the Pfam HMM is read from `<pfam_datadir>/pfam/Pfam-A.hmm`.
 * `--emapper_dir /path/to/data` → the folder containing `eggnog.db` and `eggnog_proteins.dmnd` (needed only for functional annotation; omit to skip it).
-* `--ogd_taxonomy_db /path/to/data/ete_taxonomy/e6.taxa.sqlite`.
+* `--ogd_taxonomy_db /path/to/data/ete_taxonomy/pbdood.taxa.sqlite`.
 
 ### Preparing the databases
 
